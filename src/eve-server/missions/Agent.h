@@ -147,7 +147,7 @@ public:
 
 #endif
 
-class Client;
+class Player;
 
 class AgentActions {
 public:
@@ -164,8 +164,8 @@ public:
 
     bool Load(MissionDB *from);
 
-    uint32 GetLoyaltyPoints(Client *who);
-    void DoAction(Client *who, uint32 actionID, std::string &say, std::map<uint32, std::string> &choices);
+    uint32 GetLoyaltyPoints(Player *who);
+    void DoAction(Player *who, uint32 actionID, std::string &say, std::map<uint32, std::string> &choices);
 
 protected:
     const uint32 m_agentID;

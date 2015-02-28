@@ -115,7 +115,7 @@ DogmaIMService::~DogmaIMService() {
     delete m_dispatch;
 }
 
-PyBoundObject *DogmaIMService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *DogmaIMService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     _log(CLIENT__MESSAGE, "DogmaIMService bind request for:");
     bind_args->Dump(CLIENT__MESSAGE, "    ");
 

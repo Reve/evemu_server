@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "chat/kenny.h"
 #include "chat/LSCChannel.h"
 #include "chat/LSCService.h"
@@ -132,7 +132,7 @@ void LSCChannel::SetChannelInfo(uint32 ownerID, std::string displayName, std::st
     SetMode(mode);
 }
 
-bool LSCChannel::JoinChannel(Client * c) {
+bool LSCChannel::JoinChannel(Player * c) {
     _log(LSC__CHANNELS, "Channel %s: Join from %s", m_displayName.c_str(), c->GetName());
 
 
@@ -192,7 +192,7 @@ void LSCChannel::LeaveChannel(uint32 charID, OnLSC_SenderInfo * si) {
     m_service->entityList().Multicast("OnLSC", GetTypeString(), &answer, mct);
 }
 
-void LSCChannel::LeaveChannel(Client *c, bool self) {
+void LSCChannel::LeaveChannel(Player *c, bool self) {
     _log(LSC__CHANNELS, "Channel %s: Leave from %s", m_displayName.c_str(), c->GetName());
 
     uint32 charID = c->GetCharacterID();
@@ -220,7 +220,7 @@ void LSCChannel::LeaveChannel(Client *c, bool self) {
     c->ChannelLeft(this);
 }
 
-void LSCChannel::Evacuate(Client * c) {
+void LSCChannel::Evacuate(Player * c) {
     OnLSC_DestroyChannel dc;
 
     dc.channelID = EncodeID();
@@ -239,7 +239,7 @@ void LSCChannel::Evacuate(Client * c) {
     m_service->entityList().Multicast("OnLSC", GetTypeString(), &answer, mct);
 }
 
-void LSCChannel::SendMessage(Client * c, const char * message, bool self) {
+void LSCChannel::SendMessage(Player * c, const char * message, bool self) {
 /*
     MulticastTarget mct;
 
@@ -361,7 +361,7 @@ bool LSCChannel::IsJoined(uint32 charID) {
     return m_chars.find(charID) != m_chars.end();
 }
 
-OnLSC_SenderInfo *LSCChannel::_MakeSenderInfo(Client *c) {
+OnLSC_SenderInfo *LSCChannel::_MakeSenderInfo(Player *c) {
     OnLSC_SenderInfo *sender = new OnLSC_SenderInfo;
 
     sender->senderID = c->GetCharacterID();

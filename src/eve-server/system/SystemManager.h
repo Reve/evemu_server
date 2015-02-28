@@ -37,7 +37,7 @@ class PyRep;
 class PyDict;
 class PyTuple;
 class PyList;
-class Client;
+class Player;
 class NPC;
 class InventoryItem;
 class SystemEntity;
@@ -68,10 +68,10 @@ public:
     bool Process();
     void ProcessDestiny();    //called once for each destiny second.
 
-    bool BuildDynamicEntity(Client *who, const DBSystemDynamicEntity &entity);
+    bool BuildDynamicEntity(Player *who, const DBSystemDynamicEntity &entity);
 
-    void AddClient(Client *who);
-    void RemoveClient(Client *who);
+    void AddClient(Player *who);
+    void RemoveClient(Player *who);
     void AddNPC(NPC *who);
     void RemoveNPC(NPC *who);
     void AddEntity(SystemEntity *who);

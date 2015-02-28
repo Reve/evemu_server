@@ -78,7 +78,7 @@ WarRegistryService::~WarRegistryService()
     delete m_dispatch;
 }
 
-PyBoundObject *WarRegistryService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *WarRegistryService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     Call_TwoIntegerArgs args;
     //crap
     PyRep *t = bind_args->Clone();

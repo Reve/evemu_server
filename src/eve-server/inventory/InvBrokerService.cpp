@@ -114,7 +114,7 @@ InvBrokerService::~InvBrokerService() {
 }
 
 
-PyBoundObject *InvBrokerService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *InvBrokerService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     InvBroker_BindArgs args;
     //temp crap until I rework _CreateBoundObject's signature
     PyRep *t = bind_args->Clone();

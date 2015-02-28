@@ -40,7 +40,7 @@ class BeyonceBound
 public:
     PyCallable_Make_Dispatcher(BeyonceBound)
 
-    BeyonceBound(PyServiceMgr *mgr, Client *c)
+    BeyonceBound(PyServiceMgr *mgr, Player *c)
     : PyBoundObject(mgr),
       m_dispatch(new Dispatcher(this))
     {
@@ -104,7 +104,7 @@ BeyonceService::~BeyonceService() {
 }
 
 
-PyBoundObject* BeyonceService::_CreateBoundObject( Client* c, const PyRep* bind_args )
+PyBoundObject* BeyonceService::_CreateBoundObject( Player* c, const PyRep* bind_args )
 {
     _log( CLIENT__MESSAGE, "BeyonceService bind request for:" );
     bind_args->Dump( CLIENT__MESSAGE, "    " );

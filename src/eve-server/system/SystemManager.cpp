@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "chat/LSCService.h"
 #include "mining/Asteroid.h"
 #include "npc/NPC.h"
@@ -687,7 +687,7 @@ void SystemManager::ProcessDestiny() {
     }
 }
 
-bool SystemManager::BuildDynamicEntity(Client *who, const DBSystemDynamicEntity &entity)
+bool SystemManager::BuildDynamicEntity(Player *who, const DBSystemDynamicEntity &entity)
 {
     SystemEntity *se = DynamicEntityFactory::BuildEntity(*this, m_services.item_factory, entity );
     if( se == NULL )
@@ -704,7 +704,7 @@ bool SystemManager::BuildDynamicEntity(Client *who, const DBSystemDynamicEntity 
     return true;
 }
 
-void SystemManager::AddClient(Client *who) {
+void SystemManager::AddClient(Player *who) {
     AddEntity( who );
     m_entities[who->GetID()] = who;
     m_entityChanged = true;
@@ -718,7 +718,7 @@ void SystemManager::AddClient(Client *who) {
     AddItemToInventory( who->GetShip() );
 }
 
-void SystemManager::RemoveClient(Client *who) {
+void SystemManager::RemoveClient(Player *who) {
     RemoveEntity(who);
     _log(CLIENT__TRACE, "%s: Removed from system manager for %u", who->GetName(), m_systemID);
 

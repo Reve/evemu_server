@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "PyServiceMgr.h"
 #include "npc/NPC.h"
 #include "ship/DestinyManager.h"
@@ -295,7 +295,7 @@ void DestinyManager::_Follow() {
     // if so, then we need to call DestinyManager::Stop() to stop the ship from
     // following a non-existent space object or a pilot-less ship,
     // otherwise, proceed to continue following:
-    Client * targetClient = NULL;
+    Player * targetClient = NULL;
     if( m_system->get( m_targetEntity.first ) == NULL )
     {
         // Our target was removed, so STOP
@@ -680,7 +680,7 @@ void DestinyManager::_Orbit() {
     // if so, then we need to call DestinyManager::Stop() to stop the ship from
     // following a non-existent space object or a pilot-less ship,
     // otherwise, proceed to continue orbiting:
-    Client * targetClient = NULL;
+    Player * targetClient = NULL;
     if( m_system->get( m_targetEntity.first ) == NULL )
     {
         // Our target was removed, so STOP
@@ -1280,7 +1280,7 @@ void DestinyManager::GotoDirection(const GPoint &direction, bool update) {
 
 PyResult DestinyManager::AttemptDockOperation()
 {
-    Client * who = m_self->CastToClient();
+    Player * who = m_self->CastToClient();
     SystemManager * sm = m_self->System();
     uint32 stationID = who->GetDockStationID();
     SystemEntity *station = sm->get(stationID);

@@ -62,9 +62,9 @@ PyResult StationService::Handle_GetSolarSystem(PyCallArgs &call) {
 PyResult StationService::Handle_GetGuests(PyCallArgs &call) {
     PyList *res = new PyList();
 
-    std::vector<Client *> clients;
+    std::vector<Player *> clients;
     m_manager->entity_list.FindByStationID(call.client->GetStationID(), clients);
-    std::vector<Client *>::iterator cur, end;
+    std::vector<Player *>::iterator cur, end;
     cur = clients.begin();
     end = clients.end();
     for(; cur != end; cur++) {

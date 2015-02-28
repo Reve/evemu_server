@@ -115,7 +115,7 @@ public:
 
 
 protected:
-    bool JoinCorporation(Client *who, uint32 newCorpID, const CorpMemberInfo &roles);
+    bool JoinCorporation(Player *who, uint32 newCorpID, const CorpMemberInfo &roles);
     static void FillOCApplicationChange(Notify_OnCorporationApplicationChanged & OCAC, const ApplicationInfo & Old, const ApplicationInfo & New);
 
     CorporationDB& m_db;
@@ -174,7 +174,7 @@ CorpRegistryService::~CorpRegistryService() {
 
 
 
-PyBoundObject* CorpRegistryService::_CreateBoundObject( Client* c, const PyRep* bind_args )
+PyBoundObject* CorpRegistryService::_CreateBoundObject( Player* c, const PyRep* bind_args )
 {
     _log( CLIENT__MESSAGE, "CorpRegistryService bind request for:" );
     bind_args->Dump( CLIENT__MESSAGE, "    " );
@@ -307,7 +307,7 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
     return (new PyInt(corpID));
 }
 
-bool CorpRegistryBound::JoinCorporation(Client *who, uint32 newCorpID, const CorpMemberInfo &roles) {
+bool CorpRegistryBound::JoinCorporation(Player *who, uint32 newCorpID, const CorpMemberInfo &roles) {
 
 	who->GetChar()->JoinCorporation(newCorpID, roles);
 
@@ -763,7 +763,7 @@ PyResult CorpRegistryBound::Handle_UpdateApplicationOffer(PyCallArgs &call) {
             return NULL;
         }
 
-        Client *recruit = m_manager->entity_list.FindCharacter(ocmc.charID);
+        Player *recruit = m_manager->entity_list.FindCharacter(ocmc.charID);
         if(recruit != NULL) {
             recruit->JoinCorporationUpdate(ocmc.newCorpID);
         }

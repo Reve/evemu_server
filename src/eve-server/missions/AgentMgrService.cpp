@@ -122,7 +122,7 @@ Agent *AgentMgrService::_GetAgent(uint32 agentID) {
     return(a);
 }
 
-PyBoundObject *AgentMgrService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *AgentMgrService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     _log(CLIENT__MESSAGE, "%s bind request for:", GetName());
     bind_args->Dump(CLIENT__MESSAGE, "    ");
 

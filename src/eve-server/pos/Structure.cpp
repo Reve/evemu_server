@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "inventory/AttributeEnum.h"
 #include "pos/Structure.h"
 #include "ship/DestinyManager.h"
@@ -113,7 +113,7 @@ double Structure::GetCapacity(EVEItemFlags flag) const
     }
 }
 
-void Structure::ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Client *c)
+void Structure::ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Player *c)
 {
     CharacterRef character = c->GetChar();
 

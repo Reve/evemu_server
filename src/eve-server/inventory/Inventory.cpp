@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "PyCallable.h"
 #include "character/Character.h"
 #include "inventory/Inventory.h"

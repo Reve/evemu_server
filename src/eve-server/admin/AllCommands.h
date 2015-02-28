@@ -31,7 +31,7 @@
 #include "mining/Asteroid.h"
 #include "PyServiceMgr.h"
 #include "PyCallable.h"
-#include "Client.h"
+#include "Player.h"
 #include "EntityList.h"
 
 class CommandDispatcher;
@@ -44,7 +44,7 @@ class CommandDispatcher;
  */
 
 #define COMMAND(name, role, description) \
-    PyResult Command_##name(Client *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
+    PyResult Command_##name(Player *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
 #include "admin/AllCommandsList.h"
 
 extern void RegisterAllCommands(CommandDispatcher &into);

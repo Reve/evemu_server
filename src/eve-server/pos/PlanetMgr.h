@@ -40,7 +40,7 @@ protected:
     class Dispatcher;
     Dispatcher *const m_dispatch;
 
-    virtual PyBoundObject *_CreateBoundObject(Client *c, const PyRep *bind_args);
+    virtual PyBoundObject *_CreateBoundObject(Player *c, const PyRep *bind_args);
 
     PyCallable_DECL_CALL(GetPlanetsForChar)
     PyCallable_DECL_CALL(GetMyLaunchesDetails)

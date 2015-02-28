@@ -33,7 +33,7 @@
 #include "threading/Mutex.h"
 #include "utils/Singleton.h"
 
-class Client;
+class Player;
 class PyAddress;
 class EVENotificationStream;
 class SystemManager;
@@ -65,16 +65,16 @@ public:
 
     typedef std::set<uint32> character_set;
 
-    void Add(Client **client);
+    void Add(Player **client);
 
     void Process();
 
-    Client *FindCharacter(uint32 char_id) const;
-    Client *FindCharacter(const char *name) const;
-    Client *FindByShip(uint32 ship_id) const;
-    Client *FindAccount(uint32 account_id) const;
-        void FindByStationID(uint32 stationID, std::vector<Client *> &result) const;
-        void FindByRegionID(uint32 regionID, std::vector<Client *> &result) const;
+    Player *FindCharacter(uint32 char_id) const;
+    Player *FindCharacter(const char *name) const;
+    Player *FindByShip(uint32 ship_id) const;
+    Player *FindAccount(uint32 account_id) const;
+        void FindByStationID(uint32 stationID, std::vector<Player *> &result) const;
+        void FindByRegionID(uint32 regionID, std::vector<Player *> &result) const;
     uint32 GetClientCount() const { return(uint32(m_clients.size())); }
 
     SystemManager *FindOrBootSystem(uint32 systemID);
@@ -86,10 +86,10 @@ public:
     void Multicast(const character_set &cset, const PyAddress &dest, EVENotificationStream &noti) const;
     void Multicast(const character_set &cset, const char *notifyType, const char *idType, PyTuple **payload, bool seq=true) const;
     void Unicast(uint32 charID, const char *notifyType, const char *idType, PyTuple **payload, bool seq=true);
-    void GetClients(const character_set &cset, std::vector<Client *> &result) const;
+    void GetClients(const character_set &cset, std::vector<Player *> &result) const;
 
 protected:
-    typedef std::list<Client *> client_list;
+    typedef std::list<Player *> client_list;
     client_list m_clients;
     typedef std::map<uint32, SystemManager *> system_list;
     system_list m_systems;

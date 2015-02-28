@@ -33,7 +33,7 @@ public:
     WarRegistryService(PyServiceMgr *mgr);
     ~WarRegistryService();
 
-    PyBoundObject *_CreateBoundObject(Client *c, const PyRep *bind_args);
+    PyBoundObject *_CreateBoundObject(Player *c, const PyRep *bind_args);
 
 private:
     class Dispatcher;

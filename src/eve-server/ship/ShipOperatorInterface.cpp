@@ -25,11 +25,11 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "npc/NPC.h"
 #include "ship/ShipOperatorInterface.h"
 
-void ShipOperatorInterface::SetOperatorObject(Client * pClient)
+void ShipOperatorInterface::SetOperatorObject(Player * pClient)
 {
     m_pClient = pClient;
     m_pNPC = NULL;

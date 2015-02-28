@@ -55,8 +55,8 @@ protected:
     double m_staEfficiency;
     double m_tax;
 
-    double _CalcReprocessingEfficiency(const Client *client, InventoryItemRef item = InventoryItemRef()) const;
-    PyRep *_GetQuote(uint32 itemID, const Client *c) const;
+    double _CalcReprocessingEfficiency(const Player *client, InventoryItemRef item = InventoryItemRef()) const;
+    PyRep *_GetQuote(uint32 itemID, const Player *c) const;
 };
 
 PyCallable_Make_InnerDispatcher(ReprocessingServiceBound)
@@ -74,7 +74,7 @@ ReprocessingService::~ReprocessingService() {
     delete m_dispatch;
 }
 
-PyBoundObject *ReprocessingService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *ReprocessingService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     if(!bind_args->IsInt()) {
         codelog(CLIENT__ERROR, "%s: Non-integer bind argument '%s'", c->GetName(), bind_args->TypeString());
         return NULL;
@@ -290,7 +290,7 @@ PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
     return NULL;
 }
 
-double ReprocessingServiceBound::_CalcReprocessingEfficiency(const Client *c, InventoryItemRef item) const {
+double ReprocessingServiceBound::_CalcReprocessingEfficiency(const Player *c, InventoryItemRef item) const {
     std::set<EVEItemFlags> flags;
     flags.insert(flagSkill);
     flags.insert(flagSkillInTraining);
@@ -321,7 +321,7 @@ double ReprocessingServiceBound::_CalcReprocessingEfficiency(const Client *c, In
     return(efficiency);
 }
 
-PyRep *ReprocessingServiceBound::_GetQuote(uint32 itemID, const Client *c) const {
+PyRep *ReprocessingServiceBound::_GetQuote(uint32 itemID, const Player *c) const {
     InventoryItemRef item = m_manager->item_factory.GetItem( itemID );
     if( !item )
         return NULL;    // No action as GetQuote is also called for reprocessed items (probably for check)

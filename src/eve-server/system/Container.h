@@ -68,7 +68,7 @@ public:
     /*
      * _ExecAdd validation interface:
      */
-    static void ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Client *c);
+    static void ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Player *c);
 
     /*
      * Public fields:

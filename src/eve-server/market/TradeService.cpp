@@ -79,7 +79,7 @@ TradeService::~TradeService() {
     delete m_dispatch;
 }
 
-PyBoundObject *TradeService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *TradeService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     Trade_BindArgs args;
     //temp crap until I rework _CreateBoundObject's signature
     PyRep *t = bind_args->Clone();
@@ -102,7 +102,7 @@ PyResult TradeService::Handle_InitiateTrade(PyCallArgs &call){
         return NULL;
     }
 
-    Client *target = call.client->services().entity_list.FindCharacter( args.arg );
+    Player *target = call.client->services().entity_list.FindCharacter( args.arg );
 
     InitiateTradeRsp rsp;
 

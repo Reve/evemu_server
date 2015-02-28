@@ -3,7 +3,7 @@
 
 #include "admin/CommandDB.h"
 
-class Client;
+class Player;
 class Seperator;
 class PyResult;
 class PyServiceMgr;
@@ -11,7 +11,7 @@ class PyServiceMgr;
 class CommandDispatcher {
 public:
     //this is the prototype for a command function:
-    typedef PyResult (*CommandFunc)(Client *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
+    typedef PyResult (*CommandFunc)(Player *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
 
     class CommandRecord {
     public:
@@ -27,7 +27,7 @@ public:
     CommandDispatcher(PyServiceMgr &services);
     virtual ~CommandDispatcher();
 
-    PyResult Execute(Client *from, const char *msg);
+    PyResult Execute(Player *from, const char *msg);
 
     void AddCommand(const char *cmd, const char *desc, uint64 required_role, CommandFunc function);
 

@@ -612,7 +612,7 @@ PyResult MarketProxyService::Handle_GetCorporationOrders(PyCallArgs &call)
 }
 
 
-void MarketProxyService::_SendOnOwnOrderChanged(Client *who, uint32 orderID, const char *action, bool isCorp, PyRep* order) {
+void MarketProxyService::_SendOnOwnOrderChanged(Player *who, uint32 orderID, const char *action, bool isCorp, PyRep* order) {
     Notify_OnOwnOrderChanged ooc;
     if(order != NULL)
         ooc.order = order;
@@ -624,15 +624,15 @@ void MarketProxyService::_SendOnOwnOrderChanged(Client *who, uint32 orderID, con
     who->SendNotification("OnOwnOrderChanged", "clientID", &tmp);   //tmp consumed.
 }
 
-void MarketProxyService::_SendOnMarketRefresh(Client *who) {
+void MarketProxyService::_SendOnMarketRefresh(Player *who) {
     PyTuple *tmp = new PyTuple(0);
     who->SendNotification("OnMarketRefresh", "clientID", &tmp);   //tmp consumed.
 }
 
 void MarketProxyService::_BroadcastOnOwnOrderChanged(uint32 regionID, uint32 orderID, const char *action, bool isCorp, PyRep* order) {
-    std::vector<Client *> clients;
+    std::vector<Player *> clients;
     m_manager->entity_list.FindByRegionID(regionID, clients);
-    std::vector<Client *>::iterator cur, end;
+    std::vector<Player *>::iterator cur, end;
     cur = clients.begin();
     end = clients.end();
     for(; cur != end; cur++) {
@@ -643,9 +643,9 @@ void MarketProxyService::_BroadcastOnOwnOrderChanged(uint32 regionID, uint32 ord
 }
 
 void MarketProxyService::_BroadcastOnMarketRefresh(uint32 regionID) {
-    std::vector<Client *> clients;
+    std::vector<Player *> clients;
     m_manager->entity_list.FindByRegionID(regionID, clients);
-    std::vector<Client *>::iterator cur, end;
+    std::vector<Player *>::iterator cur, end;
     cur = clients.begin();
     end = clients.end();
     for(; cur != end; cur++) {
@@ -663,7 +663,7 @@ void MarketProxyService::_InvalidateOrdersCache(uint32 typeID)
 
 //NOTE: there are a lot of race conditions to deal with here if we ever
 //allow multiple market services to run at the same time.
-void MarketProxyService::_ExecuteBuyOrder(uint32 buy_order_id, uint32 stationID, uint32 quantity, Client *seller, InventoryItemRef item, bool isCorp) {
+void MarketProxyService::_ExecuteBuyOrder(uint32 buy_order_id, uint32 stationID, uint32 quantity, Player *seller, InventoryItemRef item, bool isCorp) {
     uint32 orderOwnerID = 0;
     uint32 typeID = 0;
     uint32 qtyReq = 0;
@@ -719,7 +719,7 @@ void MarketProxyService::_ExecuteBuyOrder(uint32 buy_order_id, uint32 stationID,
     seller->AddBalance(money);
     //TODO: record this in the wallet history.
 
-    Client *buyer = m_manager->entity_list.FindCharacter(orderOwnerID);
+    Player *buyer = m_manager->entity_list.FindCharacter(orderOwnerID);
     if(quantity == qtyReq) {
         _log(MARKET__TRACE, "%s: Completely satisfied order %u, deleting.", seller->GetName(), buy_order_id);
         PyRep* order = m_db.GetOrderRow(buy_order_id);
@@ -752,7 +752,7 @@ void MarketProxyService::_ExecuteBuyOrder(uint32 buy_order_id, uint32 stationID,
 
 //NOTE: there are a lot of race conditions to deal with here if we ever
 //allow multiple market services to run at the same time.
-void MarketProxyService::_ExecuteSellOrder(uint32 sell_order_id, uint32 stationID, uint32 quantity, Client *buyer, bool isCorp) {
+void MarketProxyService::_ExecuteSellOrder(uint32 sell_order_id, uint32 stationID, uint32 quantity, Player *buyer, bool isCorp) {
     uint32 orderOwnerID = 0;
     uint32 typeID = 0;
     uint32 qtyAvail = 0;
@@ -797,7 +797,7 @@ void MarketProxyService::_ExecuteSellOrder(uint32 sell_order_id, uint32 stationI
 
     //give the money to the seller...
     //TODO: take off market overhead fees...
-    Client *seller = m_manager->entity_list.FindCharacter(orderOwnerID);
+    Player *seller = m_manager->entity_list.FindCharacter(orderOwnerID);
     if(seller != NULL) {
         //the seller is logged in, send them a notification...
         if(!seller->AddBalance(money))

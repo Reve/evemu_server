@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "LiveUpdateDB.h"
 #include "PyBoundObject.h"
 #include "chat/LSCService.h"
@@ -38,7 +38,7 @@
 
 static const uint32 PING_INTERVAL_US = 60000;
 
-Client::Client(PyServiceMgr &services, EVETCPConnection** con)
+Player::Player(PyServiceMgr &services, EVETCPConnection** con)
 : DynamicSystemEntity(NULL),
   EVEClientSession( con ),
   m_services(services),
@@ -69,7 +69,7 @@ Client::Client(PyServiceMgr &services, EVETCPConnection** con)
     Reset();
 }
 
-Client::~Client() {
+Player::~Player() {
     if( GetChar() ) {
         // we have valid character
 
@@ -110,7 +110,7 @@ Client::~Client() {
     PyDecRef( m_destinyUpdateQueue );
 }
 
-bool Client::ProcessNet()
+bool Player::ProcessNet()
 {
     if( GetState() != TCPConnection::STATE_CONNECTED )
         return false;
@@ -147,7 +147,7 @@ bool Client::ProcessNet()
     return true;
 }
 
-void Client::Process() {
+void Player::Process() {
     if(m_moveTimer.Check(false)) {
         m_moveTimer.Disable();
         _MoveState s = m_moveState;
@@ -187,7 +187,7 @@ void Client::Process() {
 }
 
 //this displays a modal error dialog on the client side.
-void Client::SendErrorMsg( const char* fmt, ... )
+void Player::SendErrorMsg( const char* fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
@@ -212,7 +212,7 @@ void Client::SendErrorMsg( const char* fmt, ... )
     SafeFree( str );
 }
 
-void Client::SendErrorMsg( const char* fmt, va_list args )
+void Player::SendErrorMsg( const char* fmt, va_list args )
 {
     char* str = NULL;
     vasprintf( &str, fmt, args );
@@ -235,7 +235,7 @@ void Client::SendErrorMsg( const char* fmt, va_list args )
 }
 
 //this displays a modal info dialog on the client side.
-void Client::SendInfoModalMsg( const char* fmt, ... )
+void Player::SendInfoModalMsg( const char* fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
@@ -261,7 +261,7 @@ void Client::SendInfoModalMsg( const char* fmt, ... )
 }
 
 //this displays a little notice (like combat messages)
-void Client::SendNotifyMsg( const char* fmt, ... )
+void Player::SendNotifyMsg( const char* fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
@@ -286,7 +286,7 @@ void Client::SendNotifyMsg( const char* fmt, ... )
     SafeFree( str );
 }
 
-void Client::SendNotifyMsg( const char* fmt, va_list args )
+void Player::SendNotifyMsg( const char* fmt, va_list args )
 {
     char* str = NULL;
     vasprintf( &str, fmt, args );
@@ -308,7 +308,7 @@ void Client::SendNotifyMsg( const char* fmt, va_list args )
 }
 
 //there may be a less hackish way to do this.
-void Client::SelfChatMessage( const char* fmt, ... )
+void Player::SelfChatMessage( const char* fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
@@ -351,15 +351,15 @@ void Client::SelfChatMessage( const char* fmt, ... )
     SafeFree( str );
 }
 
-void Client::ChannelJoined(LSCChannel *chan) {
+void Player::ChannelJoined(LSCChannel *chan) {
     m_channels.insert(chan);
 }
 
-void Client::ChannelLeft(LSCChannel *chan) {
+void Player::ChannelLeft(LSCChannel *chan) {
     m_channels.erase(chan);
 }
 
-bool Client::EnterSystem(bool login) {
+bool Player::EnterSystem(bool login) {
 
     if(m_system != NULL && m_system->GetID() != GetSystemID()) {
         //we have different m_system
@@ -385,7 +385,7 @@ bool Client::EnterSystem(bool login) {
     return true;
 }
 
-bool Client::UpdateLocation() {
+bool Player::UpdateLocation() {
     if(IsStation(GetLocationID())) {
         //we entered station, delete m_destiny
         delete m_destiny;
@@ -426,7 +426,7 @@ bool Client::UpdateLocation() {
     return true;
 }
 
-void Client::MoveToLocation( uint32 location, const GPoint& pt )
+void Player::MoveToLocation( uint32 location, const GPoint& pt )
 {
     if( GetLocationID() == location )
     {
@@ -486,7 +486,7 @@ void Client::MoveToLocation( uint32 location, const GPoint& pt )
     _SendSessionChange();
 }
 
-void Client::MoveToPosition(const GPoint &pt) {
+void Player::MoveToPosition(const GPoint &pt) {
     if(m_destiny == NULL)
         return;
     m_destiny->Halt(true);
@@ -494,7 +494,7 @@ void Client::MoveToPosition(const GPoint &pt) {
     GetShip()->Relocate(pt);
 }
 
-void Client::MoveItem(uint32 itemID, uint32 location, EVEItemFlags flag)
+void Player::MoveItem(uint32 itemID, uint32 location, EVEItemFlags flag)
 {
     m_services.item_factory.SetUsingClient( this );
     InventoryItemRef item = m_services.item_factory.GetItem( itemID );
@@ -517,7 +517,7 @@ void Client::MoveItem(uint32 itemID, uint32 location, EVEItemFlags flag)
     m_services.item_factory.UnsetUsingClient();
 }
 
-void Client::BoardShip(ShipRef new_ship) {
+void Player::BoardShip(ShipRef new_ship) {
 
     if(!new_ship->singleton()) {
         sLog.Error("Client","%s: tried to board ship %u, which is not assembled.", GetName(), new_ship->itemID());
@@ -548,7 +548,7 @@ void Client::BoardShip(ShipRef new_ship) {
 
 }
 
-void Client::_UpdateSession( const CharacterConstRef& character )
+void Player::_UpdateSession( const CharacterConstRef& character )
 {
     if( !character )
         return;
@@ -590,7 +590,7 @@ void Client::_UpdateSession( const CharacterConstRef& character )
 }
 
 
-void Client::_UpdateSession2( uint32 characterID )
+void Player::_UpdateSession2( uint32 characterID )
 {
     std::vector<uint32> characterDataVector;
     std::map<std::string, uint32> characterDataMap;
@@ -678,7 +678,7 @@ void Client::_UpdateSession2( uint32 characterID )
         mSession.SetInt( "shipid", shipID );
 }
 
-void Client::_SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel )
+void Player::_SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel )
 {
     //build the packet:
     PyPacket* p = new PyPacket;
@@ -706,7 +706,7 @@ void Client::_SendCallReturn( const PyAddress& source, uint64 callID, PyRep** re
     FastQueuePacket( &p );
 }
 
-void Client::_SendException( const PyAddress& source, uint64 callID, MACHONETMSG_TYPE in_response_to, MACHONETERR_TYPE exception_type, PyRep** payload )
+void Player::_SendException( const PyAddress& source, uint64 callID, MACHONETMSG_TYPE in_response_to, MACHONETERR_TYPE exception_type, PyRep** payload )
 {
     //build the packet:
     PyPacket* p = new PyPacket;
@@ -731,7 +731,7 @@ void Client::_SendException( const PyAddress& source, uint64 callID, MACHONETMSG
     FastQueuePacket(&p);
 }
 
-void Client::_SendSessionChange()
+void Player::_SendSessionChange()
 {
     if( !mSession.isDirty() )
         return;
@@ -780,7 +780,7 @@ void Client::_SendSessionChange()
     FastQueuePacket( &p );
 }
 
-void Client::_SendPingRequest()
+void Player::_SendPingRequest()
 {
     PyPacket *ping_req = new PyPacket();
 
@@ -804,7 +804,7 @@ void Client::_SendPingRequest()
     FastQueuePacket(&ping_req);
 }
 
-void Client::_SendPingResponse( const PyAddress& source, uint64 callID )
+void Player::_SendPingResponse( const PyAddress& source, uint64 callID )
 {
     PyPacket* ret = new PyPacket;
     ret->type = PING_RSP;
@@ -871,7 +871,7 @@ void Client::_SendPingResponse( const PyAddress& source, uint64 callID )
 
 //these are specialized Queue functions when our caller can
 //easily provide us with our own copy of the data.
-void Client::QueueDestinyUpdate(PyTuple **du)
+void Player::QueueDestinyUpdate(PyTuple **du)
 {
     DoDestinyAction act;
     act.update_id = DestinyManager::GetStamp();
@@ -881,13 +881,13 @@ void Client::QueueDestinyUpdate(PyTuple **du)
     m_destinyUpdateQueue->AddItem( act.Encode() );
 }
 
-void Client::QueueDestinyEvent(PyTuple** multiEvent)
+void Player::QueueDestinyEvent(PyTuple** multiEvent)
 {
     m_destinyEventQueue->AddItem( *multiEvent );
     *multiEvent = NULL;
 }
 
-void Client::_SendQueuedUpdates() {
+void Player::_SendQueuedUpdates() {
     if( !m_destinyUpdateQueue->empty() )
     {
         DoDestinyUpdateMain dum;
@@ -928,7 +928,7 @@ void Client::_SendQueuedUpdates() {
     m_destinyUpdateQueue->clear();
 }
 
-void Client::SendNotification(const char *notifyType, const char *idType, PyTuple **payload, bool seq) {
+void Player::SendNotification(const char *notifyType, const char *idType, PyTuple **payload, bool seq) {
 
     //build a little notification out of it.
     EVENotificationStream notify;
@@ -946,7 +946,7 @@ void Client::SendNotification(const char *notifyType, const char *idType, PyTupl
 }
 
 
-void Client::SendNotification(const PyAddress &dest, EVENotificationStream &noti, bool seq) {
+void Player::SendNotification(const PyAddress &dest, EVENotificationStream &noti, bool seq) {
 
     //build the packet:
     PyPacket *p = new PyPacket();
@@ -977,7 +977,7 @@ void Client::SendNotification(const PyAddress &dest, EVENotificationStream &noti
     FastQueuePacket(&p);
 }
 
-PyDict *Client::MakeSlimItem() const {
+PyDict *Player::MakeSlimItem() const {
     PyDict *slim = DynamicSystemEntity::MakeSlimItem();
 
     slim->SetItemString("charID", new PyInt(GetCharacterID()));
@@ -1011,7 +1011,7 @@ PyDict *Client::MakeSlimItem() const {
     return(slim);
 }
 
-void Client::WarpTo(const GPoint &to, double distance) {
+void Player::WarpTo(const GPoint &to, double distance) {
     if(m_moveState != msIdle || m_moveTimer.Enabled()) {
         sLog.Log("Client","%s: WarpTo called when a move is already pending. Ignoring.", GetName());
         return;
@@ -1021,7 +1021,7 @@ void Client::WarpTo(const GPoint &to, double distance) {
     //TODO: OnModuleAttributeChange with attribute 18 for capacitory charge
 }
 
-void Client::StargateJump(uint32 fromGate, uint32 toGate) {
+void Player::StargateJump(uint32 fromGate, uint32 toGate) {
     if(m_moveState != msIdle || m_moveTimer.Enabled()) {
         sLog.Log("Client","%s: StargateJump called when a move is already pending. Ignoring.", GetName());
         return;
@@ -1053,14 +1053,14 @@ void Client::StargateJump(uint32 fromGate, uint32 toGate) {
     _postMove(msJump, 5000);
 }
 
-void Client::SetDockingPoint(GPoint &dockPoint)
+void Player::SetDockingPoint(GPoint &dockPoint)
 {
     m_movePoint.x = dockPoint.x;
     m_movePoint.y = dockPoint.y;
     m_movePoint.z = dockPoint.z;
 }
 
-void Client::GetDockingPoint(GPoint &dockPoint)
+void Player::GetDockingPoint(GPoint &dockPoint)
 {
     dockPoint.x = m_movePoint.x;
     dockPoint.y = m_movePoint.y;
@@ -1072,14 +1072,14 @@ void Client::GetDockingPoint(GPoint &dockPoint)
 // *GetJustUndocking
 // *SetUndockAlignToPoint
 // *GetUndockAlignToPoint
-void Client::SetUndockAlignToPoint(GPoint &dest)
+void Player::SetUndockAlignToPoint(GPoint &dest)
 {
     m_undockAlignToPoint.x = dest.x;
     m_undockAlignToPoint.y = dest.y;
     m_undockAlignToPoint.z = dest.z;
 }
 
-void Client::GetUndockAlignToPoint(GPoint &dest)
+void Player::GetUndockAlignToPoint(GPoint &dest)
 {
     dest.x = m_undockAlignToPoint.x;
     dest.y = m_undockAlignToPoint.y;
@@ -1087,19 +1087,19 @@ void Client::GetUndockAlignToPoint(GPoint &dest)
 }
 // --- END HACK FUNCTIONS FOR UNDOCK ---
 
-void Client::_postMove(_MoveState type, uint32 wait_ms) {
+void Player::_postMove(_MoveState type, uint32 wait_ms) {
     m_moveState = type;
     m_moveTimer.Start(wait_ms);
 }
 
-void Client::_ExecuteJump() {
+void Player::_ExecuteJump() {
     if(m_destiny == NULL)
         return;
 
     MoveToLocation(m_moveSystemID, m_movePoint);
 }
 
-bool Client::AddBalance(double amount) {
+bool Player::AddBalance(double amount) {
     if(!GetChar()->AlterBalance(amount))
         return false;
 
@@ -1116,7 +1116,7 @@ bool Client::AddBalance(double amount) {
 
 
 
-bool Client::SelectCharacter( uint32 char_id )
+bool Player::SelectCharacter( uint32 char_id )
 {
     m_services.item_factory.SetUsingClient( this );
 
@@ -1167,7 +1167,7 @@ bool Client::SelectCharacter( uint32 char_id )
     return true;
 }
 
-void Client::UpdateSkillTraining()
+void Player::UpdateSkillTraining()
 {
     if( GetChar() )
         m_timeEndTrain = GetChar()->GetEndOfTraining();
@@ -1175,7 +1175,7 @@ void Client::UpdateSkillTraining()
         m_timeEndTrain = 0;
 }
 
-double Client::GetPropulsionStrength() const {
+double Player::GetPropulsionStrength() const {
 
     /**
      * if we don't have a ship return bogus propulsion strength
@@ -1209,7 +1209,7 @@ double Client::GetPropulsionStrength() const {
     return res.get_float();
 }
 
-void Client::TargetAdded( SystemEntity* who )
+void Player::TargetAdded( SystemEntity* who )
 {
     PyTuple* up = NULL;
 
@@ -1230,7 +1230,7 @@ void Client::TargetAdded( SystemEntity* who )
     PySafeDecRef( up );
 }
 
-void Client::TargetLost(SystemEntity *who)
+void Player::TargetLost(SystemEntity *who)
 {
     //OnMultiEvent: OnTarget lost
     Notify_OnTarget te;
@@ -1245,7 +1245,7 @@ void Client::TargetLost(SystemEntity *who)
     SendNotification("OnMultiEvent", "clientID", &tmp);
 }
 
-void Client::TargetedAdd(SystemEntity *who) {
+void Player::TargetedAdd(SystemEntity *who) {
     //OnMultiEvent: OnTarget otheradd
     Notify_OnTarget te;
     te.mode = "otheradd";
@@ -1259,7 +1259,7 @@ void Client::TargetedAdd(SystemEntity *who) {
     SendNotification("OnMultiEvent", "clientID", &tmp);
 }
 
-void Client::TargetedLost(SystemEntity *who)
+void Player::TargetedLost(SystemEntity *who)
 {
     //OnMultiEvent: OnTarget otherlost
     Notify_OnTarget te;
@@ -1274,7 +1274,7 @@ void Client::TargetedLost(SystemEntity *who)
     SendNotification("OnMultiEvent", "clientID", &tmp);
 }
 
-void Client::TargetsCleared()
+void Player::TargetsCleared()
 {
     //OnMultiEvent: OnTarget clear
     Notify_OnTarget te;
@@ -1289,7 +1289,7 @@ void Client::TargetsCleared()
     SendNotification("OnMultiEvent", "clientID", &tmp);
 }
 
-void Client::SavePosition() {
+void Player::SavePosition() {
     if( !GetShip() || m_destiny == NULL ) {
         sLog.Debug("Client","%s: Unable to save position. We are probably not in space.", GetName());
         return;
@@ -1297,7 +1297,7 @@ void Client::SavePosition() {
     GetShip()->Relocate( m_destiny->GetPosition() );
 }
 
-void Client::SaveAllToDatabase()
+void Player::SaveAllToDatabase()
 {
     SavePosition();
     GetChar()->SaveSkillQueue();
@@ -1305,7 +1305,7 @@ void Client::SaveAllToDatabase()
     GetChar()->SaveCharacter();
 }
 
-bool Client::LaunchDrone(InventoryItemRef drone) {
+bool Player::LaunchDrone(InventoryItemRef drone) {
 #if 0
 drop 166328265
 
@@ -1443,7 +1443,7 @@ DoDestinyUpdate ,*args= ([(31759,
 }
 
 //assumes that the backend DB stuff was already done.
-void Client::JoinCorporationUpdate(uint32 corp_id) {
+void Player::JoinCorporationUpdate(uint32 corp_id) {
     //GetChar()->JoinCorporation(corp_id);
 
     _UpdateSession( GetChar() );
@@ -1455,7 +1455,7 @@ void Client::JoinCorporationUpdate(uint32 corp_id) {
 /************************************************************************/
 /* character notification messages wrapper                              */
 /************************************************************************/
-void Client::OnCharNoLongerInStation()
+void Player::OnCharNoLongerInStation()
 {
     NotifyOnCharNoLongerInStation n;
     n.charID = GetCharacterID();
@@ -1468,7 +1468,7 @@ void Client::OnCharNoLongerInStation()
 }
 
 /* besides broadcasting the message this function should handle everything for this event */
-void Client::OnCharNowInStation()
+void Player::OnCharNowInStation()
 {
     NotifyOnCharNowInStation n;
     n.charID = GetCharacterID();
@@ -1482,12 +1482,12 @@ void Client::OnCharNowInStation()
 /************************************************************************/
 /* EVEAdministration Interface                                          */
 /************************************************************************/
-void Client::DisconnectClient()
+void Player::DisconnectClient()
 {
     //initiate closing the client TCP Connection
     CloseClientConnection();
 }
-void Client::BanClient()
+void Player::BanClient()
 {
     //send message to client
     SendNotifyMsg("You have been banned from this server and will be disconnected shortly.  You will no longer be able to log in");
@@ -1499,7 +1499,7 @@ void Client::BanClient()
 /************************************************************************/
 /* EVEClientSession interface                                           */
 /************************************************************************/
-void Client::_GetVersion( VersionExchangeServer& version )
+void Player::_GetVersion( VersionExchangeServer& version )
 {
     version.birthday = EVEBirthday;
     version.macho_version = MachoNetVersion;
@@ -1509,12 +1509,12 @@ void Client::_GetVersion( VersionExchangeServer& version )
     version.project_version = EVEProjectVersion;
 }
 
-uint32 Client::_GetUserCount()
+uint32 Player::_GetUserCount()
 {
     return services().entity_list.GetClientCount();
 }
 
-bool Client::_VerifyVersion( VersionExchangeClient& version )
+bool Player::_VerifyVersion( VersionExchangeClient& version )
 {
     sLog.Log("Client","%s: Received Low Level Version Exchange:", GetAddress().c_str());
     version.Dump(NET__PRES_REP, "    ");
@@ -1538,7 +1538,7 @@ bool Client::_VerifyVersion( VersionExchangeClient& version )
     return true;
 }
 
-bool Client::_VerifyCrypto( CryptoRequestPacket& cr )
+bool Player::_VerifyCrypto( CryptoRequestPacket& cr )
 {
     if( cr.keyVersion != "placebo" )
     {
@@ -1569,7 +1569,7 @@ bool Client::_VerifyCrypto( CryptoRequestPacket& cr )
     }
 }
 
-bool Client::_VerifyLogin( CryptoChallengePacket& ccp )
+bool Player::_VerifyLogin( CryptoChallengePacket& ccp )
 {
     std::string account_hash;
     std::string transport_closed_msg = "LoginAuthFailed";
@@ -1633,7 +1633,7 @@ bool Client::_VerifyLogin( CryptoChallengePacket& ccp )
      * @note we should send GPSTransportClosed with reason "The user's connection has been usurped on the proxy"
      */
     if (account_info.online) {
-        Client* client = sEntityList.FindAccount(account_info.id);
+        Player* client = sEntityList.FindAccount(account_info.id);
         if (client != NULL)
             client->DisconnectClient();
     }
@@ -1693,7 +1693,7 @@ error_login_auth_failed:
     return false;
 }
 
-bool Client::_VerifyFuncResult( CryptoHandshakeResult& result )
+bool Player::_VerifyFuncResult( CryptoHandshakeResult& result )
 {
     _log(NET__PRES_DEBUG, "%s: Handshake result received.", GetAddress().c_str());
 
@@ -1724,7 +1724,7 @@ bool Client::_VerifyFuncResult( CryptoHandshakeResult& result )
 /************************************************************************/
 /* EVEPacketDispatcher interface                                        */
 /************************************************************************/
-bool Client::Handle_CallReq( PyPacket* packet, PyCallStream& req )
+bool Player::Handle_CallReq( PyPacket* packet, PyCallStream& req )
 {
     PyCallable* dest;
     if( packet->dest.service.empty() )
@@ -1783,7 +1783,7 @@ bool Client::Handle_CallReq( PyPacket* packet, PyCallStream& req )
     return true;
 }
 
-bool Client::Handle_Notify( PyPacket* packet )
+bool Player::Handle_Notify( PyPacket* packet )
 {
     //turn this thing into a notify stream:
     ServerNotification notify;
@@ -1833,7 +1833,7 @@ bool Client::Handle_Notify( PyPacket* packet )
     return true;
 }
 
-void Client::UpdateSession(const char *sessionType, int value)
+void Player::UpdateSession(const char *sessionType, int value)
 {
     mSession.SetInt(sessionType, value);
 }

@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "PyServiceCD.h"
 #include "cache/ObjCacheService.h"
 #include "corporation/CorpBookmarkMgrService.h"

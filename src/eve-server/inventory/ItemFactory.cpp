@@ -343,12 +343,12 @@ void ItemFactory::_DeleteItem(uint32 itemID)
     }
 }
 
-void ItemFactory::SetUsingClient(Client *pClient)
+void ItemFactory::SetUsingClient(Player *pClient)
 {
     m_pClient = pClient;
 }
 
-Client * ItemFactory::GetUsingClient()
+Player * ItemFactory::GetUsingClient()
 {
     return m_pClient;
 }

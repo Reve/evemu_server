@@ -28,7 +28,7 @@
 
 #include "inventory/ItemRef.h"
 
-class Client;
+class Player;
 class DestinyManager;
 class NPC;
 
@@ -51,7 +51,7 @@ public:
         //m_pPCP = NULL;
     }
 
-    void SetOperatorObject(Client * pClient);
+    void SetOperatorObject(Player * pClient);
     void SetOperatorObject(NPC * pNPC);
     //void SetOperatorObject(PCP * pPCP);
 
@@ -80,7 +80,7 @@ public:
     // none
 
 protected:
-    Client * m_pClient;        // We do not own this
+    Player * m_pClient;        // We do not own this
     NPC * m_pNPC;            // We do not own this
     //PCP * m_pPCP;            // We do not own this
 

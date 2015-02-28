@@ -71,7 +71,7 @@ public:
     LSCService(PyServiceMgr *mgr, CommandDispatcher *cd);
     virtual ~LSCService();
 
-    PyResult ExecuteCommand(Client *from, const char *msg);
+    PyResult ExecuteCommand(Player *from, const char *msg);
     void CreateSystemChannel(uint32 systemID);
     void CharacterLogout(uint32 charID, OnLSC_SenderInfo * si);
 

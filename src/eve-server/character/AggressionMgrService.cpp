@@ -104,7 +104,7 @@ AggressionMgrService::~AggressionMgrService()
     delete m_dispatch;
 }
 
-PyBoundObject *AggressionMgrService::_CreateBoundObject(Client *c, const PyRep *bind_args)
+PyBoundObject *AggressionMgrService::_CreateBoundObject(Player *c, const PyRep *bind_args)
 {
     _log(CLIENT__MESSAGE, "AggressionMgrService bind request for:");
     bind_args->Dump(CLIENT__MESSAGE, "    ");

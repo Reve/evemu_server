@@ -400,7 +400,7 @@ PyResult RamProxyService::Handle_CompleteJob(PyCallArgs &call) {
     RamAccessDeniedWrongAlliance                - alliances not implemented
 */
 
-void RamProxyService::_VerifyInstallJob_Call(const Call_InstallJob &args, InventoryItemRef installedItem, const PathElement &bomLocation, Client *const c) {
+void RamProxyService::_VerifyInstallJob_Call(const Call_InstallJob &args, InventoryItemRef installedItem, const PathElement &bomLocation, Player *const c) {
     // ACTIVITY CHECK
     // ***************
 
@@ -664,7 +664,7 @@ void RamProxyService::_VerifyInstallJob_Call(const Call_InstallJob &args, Invent
             throw(PyException(MakeUserError("RamAccessDeniedToBOMHangar")));
 }
 
-void RamProxyService::_VerifyInstallJob_Install(const Rsp_InstallJob &rsp, const PathElement &pathBomLocation, const std::vector<RequiredItem> &reqItems, const uint32 runs, Client *const c) {
+void RamProxyService::_VerifyInstallJob_Install(const Rsp_InstallJob &rsp, const PathElement &pathBomLocation, const std::vector<RequiredItem> &reqItems, const uint32 runs, Player *const c) {
     // MONEY CHECK
     // ************
     if(rsp.cost > c->GetBalance()) {
@@ -748,7 +748,7 @@ void RamProxyService::_VerifyInstallJob_Install(const Rsp_InstallJob &rsp, const
     }
 }
 
-void RamProxyService::_VerifyCompleteJob(const Call_CompleteJob &args, Client *const c) {
+void RamProxyService::_VerifyCompleteJob(const Call_CompleteJob &args, Player *const c) {
     if((uint32)args.containerID == c->GetShipID())
         if(c->GetLocationID() != (uint32)args.containerID || c->GetChar()->flag() != flagPilot)
             throw(PyException(MakeUserError("RamCompletionMustBeInShip")));
@@ -775,7 +775,7 @@ void RamProxyService::_VerifyCompleteJob(const Call_CompleteJob &args, Client *c
         throw(PyException(MakeUserError("RamCompletionInProduction")));
 }
 
-bool RamProxyService::_Calculate(const Call_InstallJob &args, InventoryItemRef installedItem, Client *const c, Rsp_InstallJob &into) {
+bool RamProxyService::_Calculate(const Call_InstallJob &args, InventoryItemRef installedItem, Player *const c, Rsp_InstallJob &into) {
     if(!m_db.GetAssemblyLineProperties(args.installationAssemblyLineID, into.materialMultiplier, into.timeMultiplier, into.installCost, into.usageCost))
         return false;
 
@@ -918,7 +918,7 @@ void RamProxyService::_EncodeBillOfMaterials(const std::vector<RequiredItem> &re
     }
 }
 
-void RamProxyService::_EncodeMissingMaterials(const std::vector<RequiredItem> &reqItems, const PathElement &bomLocation, Client *const c, double materialMultiplier, double charMaterialMultiplier, int32 runs, std::map<int32, PyRep *> &into) {
+void RamProxyService::_EncodeMissingMaterials(const std::vector<RequiredItem> &reqItems, const PathElement &bomLocation, Player *const c, double materialMultiplier, double charMaterialMultiplier, int32 runs, std::map<int32, PyRep *> &into) {
     //query out what we need
     std::vector<InventoryItemRef> skills, items;
 

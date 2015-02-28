@@ -1254,7 +1254,7 @@ void LSCService::SendMail(uint32 sender, const std::vector<int32> &recipients, c
 //stuck here to be close to related functionality
 //theres a lot of duplicated crap in here...
 //this could be replaced by the SendNewEveMail if it weren't in the Client
-void Client::SelfEveMail( const char* subject, const char* fmt, ... )
+void Player::SelfEveMail( const char* subject, const char* fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
@@ -1362,6 +1362,6 @@ PyResult LSCService::Handle_GetMember(PyCallArgs &call) {
 }
 
 
-PyResult LSCService::ExecuteCommand(Client *from, const char *msg) {
+PyResult LSCService::ExecuteCommand(Player *from, const char *msg) {
     return(m_commandDispatch->Execute(from, msg));
 }

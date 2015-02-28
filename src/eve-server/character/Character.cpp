@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "EntityList.h"
 #include "character/Character.h"
 #include "inventory/AttributeEnum.h"
@@ -608,7 +608,7 @@ EvilNumber Character::GetEndOfTraining() const
 
 bool Character::InjectSkillIntoBrain(SkillRef skill)
 {
-    Client *c = m_factory.entity_list.FindCharacter( itemID() );
+    Player *c = m_factory.entity_list.FindCharacter( itemID() );
 
     SkillRef oldSkill = GetSkill( skill->typeID() );
     if( oldSkill )
@@ -656,7 +656,7 @@ bool Character::InjectSkillIntoBrain(SkillRef skill)
 
 bool Character::InjectSkillIntoBrain(SkillRef skill, uint8 level)
 {
-    Client *c = m_factory.entity_list.FindCharacter( itemID() );
+    Player *c = m_factory.entity_list.FindCharacter( itemID() );
 
 
     SkillRef oldSkill = GetSkill( skill->typeID() );
@@ -749,7 +749,7 @@ void Character::ClearSkillQueue()
 
 void Character::UpdateSkillQueue()
 {
-    Client *c = m_factory.entity_list.FindCharacter( itemID() );
+    Player *c = m_factory.entity_list.FindCharacter( itemID() );
 
     SkillRef currentTraining = GetSkillInTraining();
     if( currentTraining )

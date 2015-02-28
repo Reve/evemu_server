@@ -43,7 +43,7 @@ class Damage;
 class SystemBubble;
 class SystemManager;
 
-class Client;
+class Player;
 class NPC;
 
 
@@ -77,8 +77,8 @@ public:
     virtual bool IsClient() const { return false; }
     virtual bool IsNPC() const { return false; }
     virtual bool IsCelestial() const { return false; }
-    virtual Client *CastToClient() { return NULL; }
-    virtual const Client *CastToClient() const { return NULL; }
+    virtual Player *CastToClient() { return NULL; }
+    virtual const Player *CastToClient() const { return NULL; }
     virtual NPC *CastToNPC() { return NULL; }
     virtual const NPC *CastToNPC() const { return NULL; }
 

@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "EntityList.h"
 #include "PyServiceMgr.h"
 #include "corporation/CorporationDB.h"
@@ -450,7 +450,7 @@ bool ItemSystemEntity::ApplyDamage(Damage &d) {
     return(killed);
 }
 
-void Client::_ReduceDamage(Damage &d) {
+void Player::_ReduceDamage(Damage &d) {
     // armorEmDamageResonance
     // armorExplosiveDamageResonance
     // armorKineticDamageResonance
@@ -462,12 +462,12 @@ void Client::_ReduceDamage(Damage &d) {
 	sLog.Warning("Client::_ReduceDamage", "TODO: This function has NO code in it to reduce damage dealt by another entity!");
 }
 
-void Client::ApplyDamageModifiers(Damage &d, SystemEntity *target)
+void Player::ApplyDamageModifiers(Damage &d, SystemEntity *target)
 {
 }
 
 // for now this uses ItemSystemEntity
-bool Client::ApplyDamage(Damage &d) {
+bool Player::ApplyDamage(Damage &d) {
     _ReduceDamage(d);
 
     return ItemSystemEntity::ApplyDamage(d);
@@ -791,11 +791,11 @@ void DynamicSystemEntity::Killed(Damage &fatal_blow) {
     }
 }
 
-void Client::Killed(Damage &fatal_blow) {
+void Player::Killed(Damage &fatal_blow) {
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1055,7 +1055,7 @@ void NPC::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1164,7 +1164,7 @@ void NPC::_AwardBounty(SystemEntity *who) {
         return;    //bounty doesn't make sense for anything other than clients.
     }
 
-    Client *killer = who->CastToClient();
+    Player *killer = who->CastToClient();
 
     killer->AddBalance(bounty);
 
@@ -1220,7 +1220,7 @@ void ShipEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1334,7 +1334,7 @@ void DroneEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1385,7 +1385,7 @@ void StructureEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1436,7 +1436,7 @@ void ContainerEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1487,7 +1487,7 @@ void DeployableEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1521,7 +1521,7 @@ void AsteroidEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1569,7 +1569,7 @@ void CelestialEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )
@@ -1620,7 +1620,7 @@ void StationEntity::Killed(Damage &fatal_blow)
     DynamicSystemEntity::Killed(fatal_blow);
 
     SystemEntity *killer = fatal_blow.source;
-    Client* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
+    Player* client = m_services.entity_list.FindByShip( killer->Item()->ownerID() );
     if( !killer->IsClient() )
     {
         if( client != NULL )

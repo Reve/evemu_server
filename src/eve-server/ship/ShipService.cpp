@@ -102,7 +102,7 @@ ShipService::~ShipService() {
     delete m_dispatch;
 }
 
-PyBoundObject *ShipService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *ShipService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     _log(CLIENT__MESSAGE, "ShipService bind request for:");
     bind_args->Dump(CLIENT__MESSAGE, "    ");
 
@@ -514,7 +514,7 @@ PyResult ShipBound::Handle_Drop(PyCallArgs &call) {
         {
             // This item IS a cargo container, so move it from the ship's cargo into space:
             cargoContainerItem = m_manager->item_factory.GetCargoContainer( itemID );
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -545,7 +545,7 @@ PyResult ShipBound::Handle_Drop(PyCallArgs &call) {
             // This item is a POS structure of some kind, so move it from the ship's cargo into space
             // whilst keeping ownership of it to the character not using the corporation the character belongs to:
             structureItem = m_manager->item_factory.GetStructure( itemID );
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -575,7 +575,7 @@ PyResult ShipBound::Handle_Drop(PyCallArgs &call) {
         {
             // This item is a Deployable item of some kind, so move it from the ship's cargo into space
             // whilst keeping ownership of it to the character not using the corporation the character belongs to:
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -848,7 +848,7 @@ PyResult ShipBound::Handle_Jettison(PyCallArgs &call) {
             || (groupID == EVEDB::invGroups::Freight_Container) )
         {
             // This item IS a cargo container, so move it from the ship's cargo into space:
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -877,7 +877,7 @@ PyResult ShipBound::Handle_Jettison(PyCallArgs &call) {
         {
             // This item is a POS structure of some kind, so move it from the ship's cargo into space
             // whilst keeping ownership of it to the character not using the corporation the character belongs to:
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -906,7 +906,7 @@ PyResult ShipBound::Handle_Jettison(PyCallArgs &call) {
         {
             // This item is a Deployable item of some kind, so move it from the ship's cargo into space
             // whilst keeping ownership of it to the character not using the corporation the character belongs to:
-            Client * who = call.client;
+            Player * who = call.client;
             GPoint location( who->GetPosition() );
             radius = 1500.0;
             theta = MakeRandomFloat( 0.0, (2*M_PI) );
@@ -941,7 +941,7 @@ PyResult ShipBound::Handle_Jettison(PyCallArgs &call) {
             if( !cargoItem )
             {
                 // Spawn cargo container for the first time and only time in this function:
-                Client * who = call.client;
+                Player * who = call.client;
                 GPoint location( who->GetPosition() );
                 radius = 1500.0;
                 theta = MakeRandomFloat( 0.0, (2*M_PI) );

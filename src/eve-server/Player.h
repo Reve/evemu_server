@@ -77,18 +77,18 @@ class PyAddress;
 class PyList;
 class PyDict;
 class PyPacket;
-class Client;
+class Player;
 class PyRep;
 
 //DO NOT INHERIT THIS OBJECT!
-class Client
+class Player
 : public DynamicSystemEntity,
   protected EVEClientSession,
   protected EVEPacketDispatcher
 {
 public:
-    Client(PyServiceMgr &services, EVETCPConnection** con);
-    virtual ~Client();
+    Player(PyServiceMgr &services, EVETCPConnection** con);
+    virtual ~Player();
 
     bool            ProcessNet();
     virtual void    Process();
@@ -213,8 +213,8 @@ public:
     /********************************************************************/
     virtual EntityClass GetClass() const { return(ecClient); }
     virtual bool IsClient() const { return true; }
-    virtual Client *CastToClient() { return(this); }
-    virtual const Client *CastToClient() const { return(this); }
+    virtual Player *CastToClient() { return(this); }
+    virtual const Player *CastToClient() const { return(this); }
 
     virtual const char *GetName() const { return GetChar() ? GetChar()->itemName().c_str() : "(null)"; }
     virtual PyDict *MakeSlimItem() const;

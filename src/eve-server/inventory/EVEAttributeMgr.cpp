@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "EntityList.h"
 #include "inventory/EVEAttributeMgr.h"
 #include "inventory/InventoryDB.h"
@@ -325,7 +325,7 @@ void ItemAttributeMgr::_SendAttributeChange(Attr attr, PyRep *oldValue, PyRep *n
     if(GetNotify() == false)
         return;
 
-    Client *c = m_factory.entity_list.FindCharacter( item().ownerID() );
+    Player *c = m_factory.entity_list.FindCharacter( item().ownerID() );
     if(c != NULL)
     {
         Notify_OnModuleAttributeChange omac;
@@ -486,7 +486,7 @@ bool AttributeMap::SendAttributeChanges( PyTuple* attrChange )
     }
     else
     {
-        Client *client = sEntityList.FindCharacter(mItem.ownerID());
+        Player *client = sEntityList.FindCharacter(mItem.ownerID());
         //Client *client = this->mItem.GetItemFactory()->GetUsingClient();
 
         if (client == NULL)

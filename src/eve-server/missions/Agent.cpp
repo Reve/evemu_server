@@ -45,7 +45,7 @@ bool Agent::Load(MissionDB *from) {
     return true;
 }
 
-uint32 Agent::GetLoyaltyPoints(Client *who) {
+uint32 Agent::GetLoyaltyPoints(Player *who) {
     codelog(AGENT__ERROR, "Unimplemented.");
     return(0);
 }
@@ -62,7 +62,7 @@ uint32 Agent::GetLoyaltyPoints(Client *who) {
  *
 */
 void Agent::DoAction(
-    Client *who, uint32 actionID,
+    Player *who, uint32 actionID,
     std::string &say, std::map<uint32, std::string> &choices
 ) {
     /*

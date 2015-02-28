@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "EntityList.h"
 #include "ship/DestinyManager.h"
 #include "system/SystemManager.h"
@@ -57,7 +57,7 @@ EntityList::~EntityList() {
     */
 }
 
-void EntityList::Add(Client **client) {
+void EntityList::Add(Player **client) {
     if(client == NULL || *client == NULL)
         return;
 
@@ -67,7 +67,7 @@ void EntityList::Add(Client **client) {
 
 void EntityList::Process()
 {
-    Client *active_client = NULL;
+    Player *active_client = NULL;
     client_list::iterator client_cur = m_clients.begin();
     client_list::iterator client_end = m_clients.end();
     client_list::iterator client_tmp;
@@ -129,7 +129,7 @@ void EntityList::Process()
     }
 }
 
-Client *EntityList::FindCharacter(uint32 char_id) const {
+Player *EntityList::FindCharacter(uint32 char_id) const {
     //could likely improve this with a map, but its a little more work since
     //clients are added to the list before we know who they are.
 
@@ -143,7 +143,7 @@ Client *EntityList::FindCharacter(uint32 char_id) const {
     return NULL;
 }
 
-Client *EntityList::FindCharacter(const char *name) const {
+Player *EntityList::FindCharacter(const char *name) const {
     //could likely improve this with a map, but its a little more work since
     //clients are added to the list before we know who they are.
 
@@ -161,7 +161,7 @@ Client *EntityList::FindCharacter(const char *name) const {
     return NULL;
 }
 
-Client *EntityList::FindByShip(uint32 ship_id) const {
+Player *EntityList::FindByShip(uint32 ship_id) const {
     //could likely improve this with a map, but its a little more work since
     //clients are added to the list before we know who they are.
 
@@ -175,7 +175,7 @@ Client *EntityList::FindByShip(uint32 ship_id) const {
     return NULL;
 }
 
-Client *EntityList::FindAccount(uint32 account_id) const {
+Player *EntityList::FindAccount(uint32 account_id) const {
     //could likely improve this with a map, but its a little more work since
     //clients are added to the list before we know who they are.
 
@@ -189,7 +189,7 @@ Client *EntityList::FindAccount(uint32 account_id) const {
     return NULL;
 }
 
-void EntityList::FindByStationID(uint32 stationID, std::vector<Client *> &result) const {
+void EntityList::FindByStationID(uint32 stationID, std::vector<Player *> &result) const {
     //this could likely be done better
 
     client_list::const_iterator cur, end;
@@ -201,7 +201,7 @@ void EntityList::FindByStationID(uint32 stationID, std::vector<Client *> &result
     }
 }
 
-void EntityList::FindByRegionID(uint32 regionID, std::vector<Client *> &result) const {
+void EntityList::FindByRegionID(uint32 regionID, std::vector<Player *> &result) const {
     //this could likely be done better
 
     client_list::const_iterator cur, end;
@@ -240,10 +240,10 @@ void EntityList::Broadcast(const PyAddress &dest, EVENotificationStream &noti) c
 void EntityList::Multicast(const character_set &cset, const PyAddress &dest, EVENotificationStream &noti) const {
     //this could likely be done better
 
-    std::vector<Client *> result;
+    std::vector<Player *> result;
     GetClients(cset, result);
 
-    std::vector<Client *>::iterator cur, end;
+    std::vector<Player *>::iterator cur, end;
     cur = result.begin();
     end = result.end();
     for(; cur != end; cur++) {
@@ -258,7 +258,7 @@ void EntityList::Multicast( const char* notifyType, const char* idType, PyTuple*
     PyTuple* p = *payload;
     *payload = NULL;
 
-    std::list<Client*>::const_iterator cur, end;
+    std::list<Player*>::const_iterator cur, end;
     cur = m_clients.begin();
     end = m_clients.end();
     for(; cur != end; cur++)
@@ -295,7 +295,7 @@ void EntityList::Multicast(const char *notifyType, const char *idType, PyTuple *
 
     if( !chars_empty || !locs_empty || !corps_empty )
     {
-        std::list<Client *>::const_iterator cur, end;
+        std::list<Player *>::const_iterator cur, end;
         cur = m_clients.begin();
         end = m_clients.end();
         for(; cur != end; cur++)
@@ -331,12 +331,12 @@ void EntityList::Multicast(const char *notifyType, const char *idType, PyTuple *
 }
 
 void EntityList::Multicast(const character_set &cset, const char *notifyType, const char *idType, PyTuple **in_payload, bool seq) const {
-    std::vector<Client *> result;
+    std::vector<Player *> result;
     GetClients(cset, result);
 
     int num_remaining = result.size();
 
-    std::vector<Client *>::iterator cur, end;
+    std::vector<Player *>::iterator cur, end;
     cur = result.begin();
     end = result.end();
     PyTuple *payload;
@@ -363,7 +363,7 @@ void EntityList::Unicast(uint32 charID, const char *notifyType, const char *idTy
     Multicast(cset, notifyType, idType, payload, seq);
 }
 
-void EntityList::GetClients(const character_set &cset, std::vector<Client *> &result) const {
+void EntityList::GetClients(const character_set &cset, std::vector<Player *> &result) const {
     //this could likely be done better
 
     character_set::const_iterator res;

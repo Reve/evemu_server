@@ -101,7 +101,7 @@ CorpStationMgrService::~CorpStationMgrService() {
 }
 
 
-PyBoundObject *CorpStationMgrService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *CorpStationMgrService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     if(!bind_args->IsInt()) {
         codelog(SERVICE__ERROR, "%s Service: invalid bind argument type %s", GetName(), bind_args->TypeString());
         return NULL;

@@ -174,7 +174,7 @@ PyResult AccountService::Handle_GiveCash(PyCallArgs &call) {
 
     //NOTE: this will need work once we reorganize the entity list...
     bool targetIsChar;
-    Client *other = m_manager->entity_list.FindCharacter(args.destination);
+    Player *other = m_manager->entity_list.FindCharacter(args.destination);
     if(other == NULL) {
         // then the money has to be sent to a corporation...
         // check this too
@@ -198,7 +198,7 @@ PyResult AccountService::Handle_GiveCash(PyCallArgs &call) {
     }
 }
 
-PyTuple * AccountService::GiveCashToCorp(Client * const client, uint32 corpID, double amount, const char *reason, JournalRefType refTypeID) {
+PyTuple * AccountService::GiveCashToCorp(Player * const client, uint32 corpID, double amount, const char *reason, JournalRefType refTypeID) {
     if(!client->AddBalance(-amount)) {
         _log(CLIENT__ERROR, "%s: Failed to remove %.2f ISK from %u for donation to %u",
             client->GetName(),
@@ -278,7 +278,7 @@ PyTuple * AccountService::GiveCashToCorp(Client * const client, uint32 corpID, d
     return ans;
 }
 
-PyTuple * AccountService::GiveCashToChar(Client * const client, Client * const other, double amount, const char *reason, JournalRefType refTypeID) {
+PyTuple * AccountService::GiveCashToChar(Player * const client, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
     if(!client->AddBalance(-amount)) {
         _log(CLIENT__ERROR, "%s: Failed to remove %.2f ISK from %u for donation to %u",
             client->GetName(),
@@ -399,7 +399,7 @@ PyResult AccountService::Handle_GiveCashFromCorpAccount(PyCallArgs &call) {
     }
 
     //NOTE: this will need work once we reorganize the entity list...
-    Client *other = m_manager->entity_list.FindCharacter(args.destination);
+    Player *other = m_manager->entity_list.FindCharacter(args.destination);
     if(other == NULL) {
         _log(CLIENT__ERROR, "%s: Failed to find character %u", call.client->GetName(), args.destination);
         call.client->SendErrorMsg("Unable to find the target");
@@ -410,7 +410,7 @@ PyResult AccountService::Handle_GiveCashFromCorpAccount(PyCallArgs &call) {
     return WithdrawCashToChar(call.client, other, args.amount, args.reason.c_str(), RefType_corpAccountWithdrawal);
 }
 
-PyTuple * AccountService::WithdrawCashToChar(Client * const client, Client * const other, double amount, const char *reason, JournalRefType refTypeID) {
+PyTuple * AccountService::WithdrawCashToChar(Player * const client, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
     // remove money from the corp
     uint32 corpID = client->GetCorporationID();
     if (!m_db.AddBalanceToCorp(corpID, double(-amount))) {

@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "PyCallable.h"
 #include "admin/CommandDispatcher.h"
 
@@ -43,7 +43,7 @@ CommandDispatcher::~CommandDispatcher() {
     }
 }
 
-PyResult CommandDispatcher::Execute( Client *from, const char* msg )
+PyResult CommandDispatcher::Execute( Player *from, const char* msg )
 {
     //might want to check for # or / at the beginning of this crap.
     Seperator sep( &msg[1] );

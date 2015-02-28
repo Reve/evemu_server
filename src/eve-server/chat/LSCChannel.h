@@ -152,16 +152,16 @@ public:
     void SetChannelInfo(uint32 ownerID, std::string displayName, std::string motd, std::string comparisonKey,
         bool memberless, std::string password, bool mailingList, uint32 cspa, uint32 temporary, uint32 mode);
 
-    bool JoinChannel(Client * c);
-    void LeaveChannel(Client *c, bool self = true);
+    bool JoinChannel(Player * c);
+    void LeaveChannel(Player *c, bool self = true);
     void LeaveChannel(uint32 charID, OnLSC_SenderInfo * si);
     bool IsJoined(uint32 charID);
 
-    void Evacuate(Client * c);
-    void SendMessage(Client * c, const char * message, bool self = false);
+    void Evacuate(Player * c);
+    void SendMessage(Player * c, const char * message, bool self = false);
 
 
-    static OnLSC_SenderInfo *_MakeSenderInfo(Client *from);
+    static OnLSC_SenderInfo *_MakeSenderInfo(Player *from);
 
 protected:
     LSCService *const m_service;    //we do not own this

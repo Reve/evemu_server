@@ -79,7 +79,7 @@ InsuranceService::~InsuranceService() {
     delete m_dispatch;
 }
 
-PyBoundObject* InsuranceService::_CreateBoundObject( Client* c, const PyRep* bind_args )
+PyBoundObject* InsuranceService::_CreateBoundObject( Player* c, const PyRep* bind_args )
 {
     _log( CLIENT__MESSAGE, "InsuranceService bind request for:" );
     bind_args->Dump( CLIENT__MESSAGE, "    " );

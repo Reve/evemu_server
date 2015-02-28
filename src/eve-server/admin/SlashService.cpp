@@ -102,7 +102,7 @@ PyResult SlashService::Handle_SlashCmd( PyCallArgs& call )
     return SlashCommand( call.client, arg.arg );
 }
 
-PyResult SlashService::SlashCommand(Client * client, std::string command)
+PyResult SlashService::SlashCommand(Player * client, std::string command)
 {
     if( !( client->GetAccountRole() & ROLE_SLASH ) )
     {

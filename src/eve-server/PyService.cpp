@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "PyBoundObject.h"
 #include "PyService.h"
 
@@ -182,7 +182,7 @@ PyObject *PyService::_BuildCachedReturn( PySubStream** in_result, const char* se
     return cached.Encode();
 }
 
-PyBoundObject * PyService::_CreateBoundObject( Client *c, const PyRep *bind_args )
+PyBoundObject * PyService::_CreateBoundObject( Player *c, const PyRep *bind_args )
 {
     return NULL;
 }

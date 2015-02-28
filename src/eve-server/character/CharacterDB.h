@@ -33,7 +33,7 @@ class PyString;
 class CharacterAppearance;
 class ItemFactory;
 class InventoryItem;
-class Client;
+class Player;
 
 class CharacterDB : public ServiceDB
 {

@@ -31,7 +31,7 @@ class DestinyManager;
 class InventoryItem;
 class GenericModule;
 class SystemEntity;
-class Client;
+class Player;
 class ModuleManager;
 class Basic_Log;
 

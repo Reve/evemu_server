@@ -43,13 +43,13 @@ private:
     RamProxyDB m_db;
 
     // verifying functions
-    void _VerifyInstallJob_Call(const Call_InstallJob &args, InventoryItemRef installedItem, const PathElement &bomLocation, Client *const c);
-    void _VerifyInstallJob_Install(const Rsp_InstallJob &rsp, const PathElement &bomLocation, const std::vector<RequiredItem> &reqItems, const uint32 runs, Client *const c);
-    void _VerifyCompleteJob(const Call_CompleteJob &args, Client *const c);
+    void _VerifyInstallJob_Call(const Call_InstallJob &args, InventoryItemRef installedItem, const PathElement &bomLocation, Player *const c);
+    void _VerifyInstallJob_Install(const Rsp_InstallJob &rsp, const PathElement &bomLocation, const std::vector<RequiredItem> &reqItems, const uint32 runs, Player *const c);
+    void _VerifyCompleteJob(const Call_CompleteJob &args, Player *const c);
 
-    bool _Calculate(const Call_InstallJob &args, InventoryItemRef installedItem, Client *const c, Rsp_InstallJob &into);
+    bool _Calculate(const Call_InstallJob &args, InventoryItemRef installedItem, Player *const c, Rsp_InstallJob &into);
     void _EncodeBillOfMaterials(const std::vector<RequiredItem> &reqItems, double materialMultiplier, double charMaterialMultiplier, uint32 runs, BillOfMaterials &into);
-    void _EncodeMissingMaterials(const std::vector<RequiredItem> &reqItems, const PathElement &bomLocation, Client *const c, double materialMultiplier, double charMaterialMultiplier, int32 runs, std::map<int32, PyRep *> &into);
+    void _EncodeMissingMaterials(const std::vector<RequiredItem> &reqItems, const PathElement &bomLocation, Player *const c, double materialMultiplier, double charMaterialMultiplier, int32 runs, std::map<int32, PyRep *> &into);
 
     void _GetBOMItems(const PathElement &bomLocation, std::vector<InventoryItemRef> &into);
 

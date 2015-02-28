@@ -79,7 +79,7 @@ KeeperService::~KeeperService() {
     delete m_dispatch;
 }
 
-PyBoundObject *KeeperService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *KeeperService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     _log(CLIENT__MESSAGE, "KeeperService bind request for:");
     bind_args->Dump(CLIENT__MESSAGE, "    ");
 
@@ -97,7 +97,7 @@ PyResult KeeperService::Handle_ActivateAccelerationGate(PyCallArgs &call) {
         return NULL;
     }
 
-	Client * who = call.client;
+	Player * who = call.client;
 
 	who->Destiny()->SendSpecialEffect10(args.arg, who->GetShip(), 0, "effects.WarpGateEffect", 0, 1, 0);
 	double distance = 10 * ONE_AU_IN_METERS;

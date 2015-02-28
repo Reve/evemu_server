@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Client.h"
+#include "Player.h"
 #include "inventory/AttributeEnum.h"
 #include "ship/DestinyManager.h"
 #include "system/Container.h"
@@ -122,7 +122,7 @@ double CargoContainer::GetCapacity(EVEItemFlags flag) const
     }
 }
 
-void CargoContainer::ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Client *c)
+void CargoContainer::ValidateAddItem(EVEItemFlags flag, InventoryItemRef item, Player *c)
 {
     CharacterRef character = c->GetChar();
 

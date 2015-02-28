@@ -388,7 +388,7 @@ int main( int argc, char* argv[] )
         //timeout_manager.CheckTimeouts();
         while( ( tcpc = tcps.PopConnection() ) )
         {
-            Client* c = new Client( services, &tcpc );
+            Player* c = new Player( services, &tcpc );
 
             sEntityList.Add( &c );
         }

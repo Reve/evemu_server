@@ -36,7 +36,7 @@
 class ItemFactory;
 
 class EntityList;
-class Client;
+class Player;
 class CharacterData;
 class CorpMemberInfo;
 

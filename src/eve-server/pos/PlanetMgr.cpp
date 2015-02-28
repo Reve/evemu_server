@@ -77,7 +77,7 @@ PlanetMgrService::~PlanetMgrService() {
     delete m_dispatch;
 }
 
-PyBoundObject *PlanetMgrService::_CreateBoundObject(Client *c, const PyRep *bind_args) {
+PyBoundObject *PlanetMgrService::_CreateBoundObject(Player *c, const PyRep *bind_args) {
     if(!bind_args->IsInt()) {
         codelog(SERVICE__ERROR, "%s Service: invalid bind argument type %s", GetName(), bind_args->TypeString());
         return NULL;
