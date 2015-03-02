@@ -37,15 +37,13 @@ public:
 	virtual ~ClientList(void);
 
 	void Add(Client **client);
-	void Remove(Client & const client);
+	static ClientList& Get() { return ClientList::get(); }
+
+	void Process();
 
 protected:
 	typedef std::list<Client*> client_list;
 	client_list m_clients;
 };
-
-
-//Singleton retrieval
-#define sClientList ( ClientList::get() )
 
 #endif

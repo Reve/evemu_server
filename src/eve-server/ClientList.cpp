@@ -36,6 +36,31 @@ ClientList::~ClientList(void)
 {
 }
 
+void ClientList::Process()
+{
+	Client *active_client = NULL;
+	client_list::iterator client_cur = m_clients.begin();
+	client_list::iterator client_end = m_clients.end();
+	client_list::iterator client_tmp;
+
+	while(client_cur != client_end)
+	{
+		active_client = *client_cur;
+		if(!active_client->ProcessNet())
+		{
+			sLog.Log("Client List", "Destroying client with id %d", active_client->id);
+			SafeDelete(active_client);
+
+			client_tmp = client_cur++;
+			m_clients.erase( client_tmp );
+		}
+		else
+		{
+			client_cur++;
+		}
+	}
+}
+
 void ClientList::Add(Client **client)
 {
 	if(*client == NULL || client == NULL)
@@ -43,16 +68,5 @@ void ClientList::Add(Client **client)
 
 	m_clients.push_back(*client);
 	*client = NULL; // consume the pointer
-	printf("Added client to ClientList!");
-}
-
-void ClientList::Remove(Client & const client)
-{
-	Client *c = &client;
-	if(c == NULL)
-		return;
-
-	m_clients.remove(c);
-	c = NULL; // consume the pointer
-	printf("Removed Client form ClientList with the id: %d", client.id);
+	sLog.Log("Client List", "Added client to ClientList!");
 }

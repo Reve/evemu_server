@@ -381,8 +381,10 @@ int main( int argc, char* argv[] )
     uint32 etime;
     uint32 last_time = GetTickCount();
 
-    EVETCPConnection* tcpc;
-    while( RunLoops == true )
+    EVETCPConnection* tcpc;	
+	ClientList c_list = ClientList::Get();
+    
+	while( RunLoops == true )
     {
         Timer::SetCurrentTime();
         start = GetTickCount();
@@ -391,14 +393,15 @@ int main( int argc, char* argv[] )
         //timeout_manager.CheckTimeouts();
         while( ( tcpc = tcps.PopConnection() ) )
         {
-            Player* c = new Player( services, &tcpc );
+            Player* p = new Player( services, &tcpc );
 
-            sEntityList.Add( &c );
+            sEntityList.Add( &p );
 
 			Client *client = new Client();
-			sClientList.Add(&client);
+			c_list.Add(&client);
         }
 
+		c_list.Process();
         sEntityList.Process();
         services.Process();
 

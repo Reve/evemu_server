@@ -141,6 +141,9 @@ public:
 	bool operator==(const Client& other) const;
 
 	void Disconnect();
+	virtual void Process();
+	bool ProcessNet();
+	
 	//void _LoadSystems(EntityList &entityList, ItemFactory &itemFactory);
 
 protected:

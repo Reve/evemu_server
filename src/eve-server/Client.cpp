@@ -52,7 +52,21 @@ bool Client::operator==(const Client &other) const
 
 void Client::Disconnect()
 {
-	sClientList.Remove(const_cast<Client&>(*this));
+	//sClientList.Remove(const_cast<Client&>(*this));
+}
+
+void Client::Process()
+{
+	ProcessNet();
+}
+
+bool Client::ProcessNet()
+{
+	// Simulate disconnect
+	if(true)
+		return false;
+
+	return true;
 }
 /*
 void Client::_LoadSystems(EntityList &entityList, ItemFactory &itemFactory)
