@@ -52,8 +52,8 @@ Static Bodies:
 detect clients moving into agro radius
 */
 
-#ifndef EVE_CLIENT_H
-#define EVE_CLIENT_H
+#ifndef EVE_PLAYER_H
+#define EVE_PLAYER_H
 
 #include "ClientSession.h"
 

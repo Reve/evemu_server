@@ -36,6 +36,8 @@
 #include "system/SystemManager.h"
 #include "character/CharUnboundMgrService.h"
 
+#include "Client.h"
+
 static const uint32 PING_INTERVAL_US = 60000;
 
 Player::Player(PyServiceMgr &services, EVETCPConnection** con)
@@ -1486,6 +1488,8 @@ void Player::DisconnectClient()
 {
     //initiate closing the client TCP Connection
     CloseClientConnection();
+	Client *c = new Client();
+	c->Disconnect();
 }
 void Player::BanClient()
 {

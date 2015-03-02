@@ -129,6 +129,9 @@
 #include "system/ScenarioService.h"
 #include "system/WrecksAndLoot.h"
 
+#include "Client.h"
+#include "ClientList.h"
+
 static void SetupSignals();
 static void CatchSignal( int sig_num );
 
@@ -391,6 +394,9 @@ int main( int argc, char* argv[] )
             Player* c = new Player( services, &tcpc );
 
             sEntityList.Add( &c );
+
+			Client *client = new Client();
+			sClientList.Add(&client);
         }
 
         sEntityList.Process();
