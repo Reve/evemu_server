@@ -52,7 +52,8 @@ public:
     }
 
     //CallDispatcher interface:
-    virtual PyResult Dispatch(const std::string &method_name, PyCallArgs &call) {
+    virtual PyResult 
+		(const std::string &method_name, PyCallArgs &call) {
         //this could be done a lot more efficiently with a custom data structure IF NEEDED
         mapitr res;
         res = m_serviceCalls.find(method_name);

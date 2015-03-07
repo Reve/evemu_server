@@ -31,6 +31,9 @@
 class APICharacterDB
 {
 public:
+
+	DBcore m_db;
+
     APICharacterDB();
 
     /**
@@ -120,7 +123,9 @@ public:
      */
     bool GetCharacterCorporationRoles(uint32 characterID, std::string roleType, std::map<std::string, std::string> & roleList);
 
-protected:
+private:
+	void _openDBCon();
+	void _closeDBCon(){ m_db.Close(); }
 
 };
 

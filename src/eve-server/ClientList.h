@@ -36,8 +36,10 @@ public:
 	ClientList(void);
 	virtual ~ClientList(void);
 
-	void Add(Client **client);
-	static ClientList& Get() { return ClientList::get(); }
+	void add(Client **client);
+	int getCount();
+	Client* findAccount(int id);
+	static ClientList& get() { return ClientList::get(); }
 
 	void Process();
 

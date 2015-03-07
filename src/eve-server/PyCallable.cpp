@@ -54,7 +54,7 @@ PyResult PyCallable::Call(const std::string &method, PyCallArgs &args) {
 }
 
 
-PyCallArgs::PyCallArgs(Player *c, PyTuple* tup, PyDict* dict)
+PyCallArgs::PyCallArgs(Client *c, PyTuple* tup, PyDict* dict)
 : client(c),
   tuple(tup)
 {

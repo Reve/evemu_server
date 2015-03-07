@@ -24,21 +24,24 @@
 */
 
 #include "eve-server.h"
+#include "EVEServerConfig.h"
 
 #include "apiserver/APICharacterDB.h"
 #include "inventory/AttributeEnum.h"
 
 APICharacterDB::APICharacterDB()
 {
+	DBcore m_db = DBcore();
 }
 
 bool APICharacterDB::GetCharacterSkillsTrained(uint32 characterID, std::vector<std::string> & skillTypeIDList, std::vector<std::string> & skillPointsList,
     std::vector<std::string> & skillLevelList, std::vector<std::string> & skillPublishedList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get list of characters and their corporation info from the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "   entity.itemID, "
         "   entity.typeID, "
@@ -55,6 +58,7 @@ bool APICharacterDB::GetCharacterSkillsTrained(uint32 characterID, std::vector<s
         " WHERE `ownerID` = %u AND invGroups.categoryID = 16 ", characterID ))
     {
         sLog.Error( "APIAccountDB::GetCharacterSkillsTrained()", "Cannot find characterID %u", characterID );
+		_closeDBCon();
         return false;
     }
 
@@ -104,15 +108,17 @@ bool APICharacterDB::GetCharacterSkillsTrained(uint32 characterID, std::vector<s
         }
     }
 
+	_closeDBCon();
     return true;
 }
 
 bool APICharacterDB::GetCharacterInfo(uint32 characterID, std::vector<std::string> & charInfoList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get list of characters and their corporation info from the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "  character_.balance, "
         "  character_.skillPoints, "
@@ -138,6 +144,7 @@ bool APICharacterDB::GetCharacterInfo(uint32 characterID, std::vector<std::strin
         " WHERE character_.characterID = %u ", characterID ))
     {
         sLog.Error( "APIAccountDB::GetCharacterSkillsTrained()", "Cannot find characterID %u", characterID );
+		_closeDBCon();
         return false;
     }
 
@@ -145,8 +152,11 @@ bool APICharacterDB::GetCharacterInfo(uint32 characterID, std::vector<std::strin
     if( !res.GetRow(row) )
     {
         sLog.Error( "APIServiceDB::GetAccountIdFromUsername()", "res.GetRow(row) failed for unknown reason." );
+		_closeDBCon();
         return false;
     }
+
+	// TO-DO Create a struct to hold all this information
 
     charInfoList.push_back( std::string(row.GetText(0)) );      // 0. Balance
     charInfoList.push_back( std::string(row.GetText(1)) );      // 1. Skill Points
@@ -164,15 +174,17 @@ bool APICharacterDB::GetCharacterInfo(uint32 characterID, std::vector<std::strin
     charInfoList.push_back( std::string(row.GetText(14)) );     // 13. corp Name
     charInfoList.push_back( std::string(row.GetText(9)) );     // 14. gender (0 = female, 1 = male)
 
+	_closeDBCon();
     return true;
 }
 
 bool APICharacterDB::GetCharacterAttributes(uint32 characterID, std::map<std::string, std::string> & attribList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get list of characters and their corporation info from the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "  itemID, "
         "  attributeID, "
@@ -250,9 +262,11 @@ bool APICharacterDB::GetCharacterAttributes(uint32 characterID, std::map<std::st
     if( !row_found )
     {
         sLog.Error( "APIServiceDB::GetAccountIdFromUsername()", "res.GetRow(row) failed for unknown reason." );
+		_closeDBCon();
         return false;
     }
 
+	_closeDBCon();
     return true;
 }
 
@@ -260,10 +274,11 @@ bool APICharacterDB::GetCharacterSkillQueue(uint32 characterID, std::vector<std:
     std::vector<std::string> & levelList, std::vector<std::string> & rankList, std::vector<std::string> & skillIdList,
     std::vector<std::string> & primaryAttrList, std::vector<std::string> & secondaryAttrList, std::vector<std::string> & skillPointsTrainedList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get list of characters and their corporation info from the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "  chrSkillQueue.*, "
         "  dgmTypeAttributes.attributeID, "
@@ -281,6 +296,7 @@ bool APICharacterDB::GetCharacterSkillQueue(uint32 characterID, std::vector<std:
         characterID, AttrPrimaryAttribute, AttrSecondaryAttribute, AttrSkillTimeConstant, characterID, AttrSkillPoints ))
     {
         sLog.Error( "APIAccountDB::GetCharacterSkillQueue()", "Cannot find characterID %u", characterID );
+		_closeDBCon();
         return false;
     }
 
@@ -339,9 +355,11 @@ bool APICharacterDB::GetCharacterSkillQueue(uint32 characterID, std::vector<std:
     if( !row_found )
     {
         sLog.Error( "APIServiceDB::GetCharacterSkillQueue()", "res.GetRow(row) failed for unknown reason." );
+		_closeDBCon();
         return false;
     }
 
+	_closeDBCon();
     return true;
 }
 
@@ -360,7 +378,20 @@ bool APICharacterDB::GetCharacterCorporationRoles(uint32 characterID, std::strin
     return false;
 }
 
-
+void APICharacterDB::_openDBCon()
+{
+	//create a connection to the database
+	DBerror err;
+	if( !m_db.Open( err,
+		sConfig.database.host.c_str(),
+		sConfig.database.username.c_str(),
+		sConfig.database.password.c_str(),
+		sConfig.database.db.c_str(),
+		sConfig.database.port ) )
+	{
+		sLog.Error( "client init", "Unable to connect to the database: %s", err.c_str() );
+	}
+}
 
 /*
 bool APIServiceDB::GetAccountIdFromUsername(std::string username, std::string * accountID)

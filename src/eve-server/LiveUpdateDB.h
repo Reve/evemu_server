@@ -26,25 +26,22 @@
 #ifndef __LIVE_UPDATE_DB__H__INCL__
 #define __LIVE_UPDATE_DB__H__INCL__
 
-#include "utils/Singleton.h"
-
 class PyRep;
 
-class LiveUpdateDB : public Singleton<LiveUpdateDB>
+class LiveUpdateDB
 {
 private:
-
+	DBcore m_db;
     PyList* GenerateUpdates();
 
 public:
+
+	LiveUpdateDB(DBcore &db);
 
     PyList* GetUpdates()
     {
         return GenerateUpdates();
     }
 };
-
-#define sLiveUpdateDB \
-    ( LiveUpdateDB::get() )
 
 #endif // __LIVE_UPDATE_DB__H__INCL__

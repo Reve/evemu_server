@@ -40,26 +40,9 @@ class Player;
 class CharacterData;
 class CorpMemberInfo;
 
-struct AccountInfo
-{
-    std::string name;
-    std::string password;
-    std::string hash;
-    uint32 id;
-    uint64 role;
-    uint32 visits;
-    std::string last_login;
-    bool online;
-    bool banned;
-};
-
 class ServiceDB
 {
 public:
-    bool GetAccountInformation( const char* username, const char* password, AccountInfo & account_info );
-    bool UpdateAccountHash( const char* username, std::string & hash );
-    bool UpdateAccountInformation( const char* username, bool isOnline );
-
 
     //entity/item stuff:
     PyObject *GetSolRow(uint32 systemID) const;
@@ -91,19 +74,6 @@ protected:
     void ProcessRealChange(const char * key, double oldValue, double newValue, PyDict * notif, std::vector<std::string> & dbQ);
     void ProcessIntChange(const char * key, uint32 oldValue, uint32 newValue, PyDict * notif, std::vector<std::string> & dbQ);
 
-    /**
-     * CreateNewAccount
-     *
-     * This method is part of the "autoAccount" creation patch by firefoxpdm. This
-     * will insert a new account row into the database if the account name doesn't
-     * exist at login.
-     *
-     * @param login is a const char string containing the name.
-     * @param pass is a const char string containing the password.
-     * @param role is the users role in the game.
-     * @author firefoxpdm, xanarox
-     */
-    uint32 CreateNewAccount( const char* login, const char* pass, uint64 role );
 };
 
 #endif

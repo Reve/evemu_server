@@ -331,6 +331,11 @@ bool DBcore::Open_locked(int32* errnum, char* errbuf) {
     return true;
 }
 
+void DBcore::Close()
+{
+	mysql_close(&mysql);
+}
+
 /************************************************************************/
 /* DBerror                                                              */
 /************************************************************************/

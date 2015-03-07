@@ -24,20 +24,22 @@
 */
 
 #include "eve-server.h"
-
+#include "EVEServerConfig.h"
 #include "apiserver/APIAccountDB.h"
 
 APIAccountDB::APIAccountDB()
 {
+	DBcore m_db = DBcore();
 }
 
 bool APIAccountDB::GetCharactersList(uint32 accountID, std::vector<std::string> & charIDList, std::vector<std::string> & charNameList,
     std::vector<std::string> & charCorpIDList, std::vector<std::string> & charCorpNameList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get list of characters and their corporation info from the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "   character_.characterID, "
         "   character_.corporationID, "
@@ -49,6 +51,7 @@ bool APIAccountDB::GetCharactersList(uint32 accountID, std::vector<std::string> 
         " WHERE `accountID` = %u ", accountID ))
     {
         sLog.Error( "APIAccountDB::GetCharactersList()", "Cannot find accountID %u", accountID );
+		_closeDBCon();
         return false;
     }
 
@@ -62,16 +65,18 @@ bool APIAccountDB::GetCharactersList(uint32 accountID, std::vector<std::string> 
         charNameList.push_back( std::string(row.GetText(3)) );
     }
 
+	_closeDBCon();
     return true;
 }
 
 
 bool APIAccountDB::GetAccountInfo(uint32 accountID, std::vector<std::string> & accountInfoList)
 {
+	_openDBCon();
     DBQueryResult res;
 
     // Get account table info using the accountID:
-    if( !sDatabase.RunQuery(res,
+    if( !m_db.RunQuery(res,
         " SELECT "
         "   online, "
         "   banned, "
@@ -88,6 +93,7 @@ bool APIAccountDB::GetAccountInfo(uint32 accountID, std::vector<std::string> & a
     if( !res.GetRow(row) )
     {
         sLog.Error( "APIServiceDB::GetAccountInfo()", "res.GetRow(row) failed for unknown reason." );
+		_closeDBCon();
         return false;
     }
 
@@ -96,5 +102,21 @@ bool APIAccountDB::GetAccountInfo(uint32 accountID, std::vector<std::string> & a
     accountInfoList.push_back( std::string(row.GetText(2)) );
     accountInfoList.push_back( std::string(row.GetText(3)) );
 
+	_closeDBCon();
     return true;
+}
+
+void APIAccountDB::_openDBCon()
+{
+	//create a connection to the database
+	DBerror err;
+	if( !m_db.Open( err,
+		sConfig.database.host.c_str(),
+		sConfig.database.username.c_str(),
+		sConfig.database.password.c_str(),
+		sConfig.database.db.c_str(),
+		sConfig.database.port ) )
+	{
+		sLog.Error( "client init", "Unable to connect to the database: %s", err.c_str() );
+	}
 }

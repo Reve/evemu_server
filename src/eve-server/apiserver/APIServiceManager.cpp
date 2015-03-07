@@ -143,7 +143,7 @@ bool APIServiceManager::_AuthenticateUserNamePassword(std::string username, std:
 {
     // Query account info
     AccountInfo account_info;
-    if( !services().serviceDB().GetAccountInformation(
+    if( m_db.GetAccountInformation(
             username.c_str(), 
 			password.c_str(),
 			account_info ) )
@@ -186,6 +186,8 @@ bool APIServiceManager::_AuthenticateLimitedAPIQuery(std::string userID, std::st
     else
         return false;
 }
+
+#pragma region XMLBuilder
 
 void APIServiceManager::_BuildXMLHeader()
 {
@@ -349,3 +351,5 @@ std::tr1::shared_ptr<std::string> APIServiceManager::_GetXMLDocumentString()
 
     return std::tr1::shared_ptr<std::string>(new std::string(xmlPrinter.CStr()));
 }
+
+#pragma endregion

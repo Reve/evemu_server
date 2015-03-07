@@ -27,12 +27,17 @@
 
 #include "LiveUpdateDB.h"
 
+LiveUpdateDB::LiveUpdateDB(DBcore &db):
+	m_db(db)
+{
+}
+
 PyList* LiveUpdateDB::GenerateUpdates()
 {
     const char* query = "SELECT updateID, updateName, description, machoVersionMin, machoVersionMax, buildNumberMin, buildNumberMax, methodName, objectID, codeType, code FROM liveupdates";
     DBQueryResult res;
 
-    if (!sDatabase.RunQuery(res, query))
+    if (!m_db.RunQuery(res, query))
     {
         codelog(DATABASE__ERROR, "Couldn't get live updates from database: %s", res.error.c_str());
         return NULL;

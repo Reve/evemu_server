@@ -33,33 +33,15 @@ class APIAccountDB
 public:
     APIAccountDB();
 
-    /**
-     * @brief ?
-     *
-     * ?
-     *
-     * @param[in] ?
-     * @param[in] ?
-     *
-     * @retval ?
-     */
     bool GetCharactersList(uint32 accountID, std::vector<std::string> & charIDList, std::vector<std::string> & charNameList,
     std::vector<std::string> & charCorpIDList, std::vector<std::string> & charCorpNameList);
-
-    /**
-     * @brief ?
-     *
-     * ?
-     *
-     * @param[in] ?
-     * @param[in] ?
-     *
-     * @retval ?
-     */
     bool GetAccountInfo(uint32 accountID, std::vector<std::string> & accountInfoList);
 
-protected:
+private:
+	DBcore m_db;
 
+	void _openDBCon();
+	void _closeDBCon(){ m_db.Close(); }
 };
 
 #endif    //__APIACCOUNTDB_H_INCL__

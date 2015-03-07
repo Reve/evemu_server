@@ -61,7 +61,7 @@ void ClientList::Process()
 	}
 }
 
-void ClientList::Add(Client **client)
+void ClientList::add(Client **client)
 {
 	if(*client == NULL || client == NULL)
 		return;
@@ -69,4 +69,18 @@ void ClientList::Add(Client **client)
 	m_clients.push_back(*client);
 	*client = NULL; // consume the pointer
 	sLog.Log("Client List", "Added client to ClientList!");
+}
+
+int ClientList::getCount()
+{
+	return m_clients.size();
+}
+
+Client* ClientList::findAccount(int id)
+{
+	for(client_list::iterator cur = m_clients.begin(); cur != m_clients.end(); cur++)
+	{
+		if((*cur)->id == id)
+			return *cur;
+	}
 }

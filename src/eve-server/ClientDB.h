@@ -20,11 +20,13 @@
     Place - Suite 330, Boston, MA 02111-1307, USA, or go to
     http://www.gnu.org/copyleft/lesser.txt.
     ------------------------------------------------------------------------------------
-    Author:        Aknor Jaden, Reve
+    Author:     Reve
 */
 
-#ifndef __APISERVICEDB_H_INCL__
-#define __APISERVICEDB_H_INCL__
+#ifndef EVE_CLIENT_DB_H
+#define EVE_CLIENT_DB_H
+
+#include "eve-server.h"
 
 struct AccountInfo
 {
@@ -39,29 +41,29 @@ struct AccountInfo
 	bool banned;
 };
 
-class APIServiceDB
+class ClientDB 
 {
 public:
-	// we create own instance of db so we don't share the connection with other services
-	// we will also open and close the connection for each operation to limit the connections
 	DBcore m_db;
 
-    APIServiceDB();
-	~APIServiceDB();
+	ClientDB(DBcore &db);
+	bool GetAccountInformation(const std::string username, const std::string password, AccountInfo &accountInfo);
+	bool UpdateAccountHash( const std::string username, std::string & hash );
+	bool UpdateAccountInformation( const std::string username, bool isOnline );
 
-	bool GetAccountInformation( const std::string username, const std::string password, AccountInfo & account_info );
-    bool GetAccountIdFromUsername(std::string username, std::string * accountID);
-    bool GetAccountIdFromUserID(std::string userID, uint32 * accountID);
-    bool GetApiAccountInfoUsingAccountID(std::string accountID, uint32 * userID, std::string * apiFullKey,
-        std::string * apiLimitedKey, uint32 * apiRole);
-    bool GetApiAccountInfoUsingUserID(std::string userID, std::string * apiFullKey, std::string * apiLimitedKey, uint32 * apiRole);
-    bool UpdateUserIdApiKeyDatabaseRow(uint32 userID, std::string apiFullKey, std::string apiLimitedKey);
-    bool InsertNewUserIdApiKeyInfoToDatabase(uint32 accountID, std::string apiFullKey, std::string apiLimitedKey, uint32 apiRole);
-    bool UpdateUserIdApiRole(uint32 userID, uint32 apiRole);
-
-private:
-	void _openDBCon();
-	void _closeDBCon() { m_db.Close(); }
+	/**
+     * CreateNewAccount
+     *
+     * This method is part of the "autoAccount" creation patch by firefoxpdm. This
+     * will insert a new account row into the database if the account name doesn't
+     * exist at login.
+     *
+     * @param login is a const char string containing the name.
+     * @param pass is a const char string containing the password.
+     * @param role is the users role in the game.
+     * @author firefoxpdm, xanarox
+     */
+	uint32 CreateNewAccount( const std::string username, const std::string password, uint64 role );
 };
 
-#endif    //__APISERVICEDB_H_INCL__
+#endif

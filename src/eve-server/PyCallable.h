@@ -29,7 +29,7 @@
 
 #include "ServiceDB.h"
 
-class Player;
+class Client;
 
 class PyRep;
 class PyTuple;
@@ -41,12 +41,12 @@ class PyCallStream;
 class PyCallArgs
 {
 public:
-    PyCallArgs( Player *c, PyTuple* tup, PyDict* dict );
+    PyCallArgs( Client *c, PyTuple* tup, PyDict* dict );
     ~PyCallArgs();
 
     void Dump( LogType type ) const;
 
-    Player* const client;    //we do not own this
+    Client* const client;    //we do not own this
     PyTuple* tuple;        //we own this, but it may be taken
     std::map<std::string, PyRep*> byname;    //we own this, but elements may be taken.
 };

@@ -243,13 +243,6 @@ protected:
     void _UpdateSession( const CharacterConstRef& character );
     void _UpdateSession2( uint32 characterID  );
 
-    // Packet stuff
-    void _SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel = NULL );
-    void _SendException( const PyAddress& source, uint64 callID, MACHONETMSG_TYPE in_response_to, MACHONETERR_TYPE exception_type, PyRep** payload );
-    void _SendSessionChange();
-    void _SendPingRequest();
-    void _SendPingResponse( const PyAddress& source, uint64 callID );
-
     PyServiceMgr& m_services;
     Timer m_pingTimer;
     ClientSession mSession;
@@ -290,30 +283,6 @@ protected:
     // --- END HACK VARIABLES FOR UNDOCK ---
 
     EvilNumber m_timeEndTrain;
-
-    /********************************************************************/
-    /* EVEClientSession interface                                       */
-    /********************************************************************/
-    void _GetVersion( VersionExchangeServer& version );
-    uint32 _GetUserCount();
-    uint32 _GetQueuePosition() { /* hack */ return 1; }
-
-    /********************************************************************/
-    /* EVEClientLogin statemachine                                      */
-    /********************************************************************/
-    bool _VerifyVersion( VersionExchangeClient& version );
-    bool _VerifyCrypto( CryptoRequestPacket& cr );
-    bool _VerifyLogin( CryptoChallengePacket& ccp );
-    bool _VerifyVIPKey( const std::string& vipKey ) { /* do nothing */ return true; }
-    bool _VerifyFuncResult( CryptoHandshakeResult& result );
-
-    /********************************************************************/
-    /* EVEPacketDispatcher interface                                    */
-    /********************************************************************/
-    bool Handle_CallReq( PyPacket* packet, PyCallStream& req );
-    bool Handle_Notify( PyPacket* packet );
-    bool Handle_PingReq( PyPacket* packet ) { _SendPingResponse( packet->dest, packet->source.callID ); return true; }
-    bool Handle_PingRsp( PyPacket* packet ) { /* do nothing */ return true; }
 
 private:
     //queues for destiny updates:

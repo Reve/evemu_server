@@ -47,7 +47,7 @@ class LSCService;
 class PyServiceMgr
 {
 public:
-    PyServiceMgr( uint32 nodeID, EntityList& elist, ItemFactory& ifactory );
+    PyServiceMgr( uint32 nodeID/*, EntityList& elist, ItemFactory& ifactory */);
     ~PyServiceMgr();
 
     void Process();

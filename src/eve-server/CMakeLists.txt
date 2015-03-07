@@ -18,6 +18,7 @@ SET( TARGET_UTILS_DIR   "${PROJECT_SOURCE_DIR}/utils" )
 SET( INCLUDE
      "${TARGET_INCLUDE_DIR}/eve-server.h"
      "${TARGET_INCLUDE_DIR}/Client.h"
+	 "${TARGET_INCLUDE_DIR}/ClientDB.h"
      "${TARGET_INCLUDE_DIR}/ClientSession.h"
      "${TARGET_INCLUDE_DIR}/ClientList.h"
      "${TARGET_INCLUDE_DIR}/EntityList.h"
@@ -34,6 +35,7 @@ SET( INCLUDE
 SET( SOURCE
      "${TARGET_SOURCE_DIR}/eve-server.cpp"
      "${TARGET_SOURCE_DIR}/Client.cpp"
+	 "${TARGET_SOURCE_DIR}/ClientDB.cpp"
      "${TARGET_SOURCE_DIR}/ClientSession.cpp"
      "${TARGET_SOURCE_DIR}/ClientList.cpp"
      "${TARGET_SOURCE_DIR}/EntityList.cpp"
