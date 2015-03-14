@@ -207,7 +207,7 @@ PyResult CorpRegistryBound::Handle_GetLockedItemLocations( PyCallArgs& call )
 }
 
 PyResult CorpRegistryBound::Handle_GetCorporation(PyCallArgs &call) {
-    return(m_db.GetCorporation(call.client->GetCorporationID()));
+    return(m_db.GetCorporation(call.player->GetCorporationID()));
 }
 PyResult CorpRegistryBound::Handle_GetCorporations(PyCallArgs &call) {
     Call_SingleIntegerArg arg;
@@ -224,21 +224,21 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
     Call_AddCorporation args;
 
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return(new PyInt(0));
     }
 
     //first make sure the char can even afford it.
     int32 corp_cost = sConfig.rates.corporationStartupCost;
 
-    if(call.client->GetBalance() < double(corp_cost)) {
-        _log(SERVICE__ERROR, "%s: Cannot afford corporation startup costs!", call.client->GetName());
+    if(call.player->GetBalance() < double(corp_cost)) {
+        _log(SERVICE__ERROR, "%s: Cannot afford corporation startup costs!", call.player->GetName());
         return(new PyInt(0));
     }
 
     // Register new corp
     uint32 corpID;
-    if (!m_db.AddCorporation(args, call.client->GetCharacterID(), call.client->GetStationID(), corpID)) {
+    if (!m_db.AddCorporation(args, call.player->GetCharacterID(), call.player->GetStationID(), corpID)) {
         codelog(SERVICE__ERROR, "New corporation creation failed...");
         return (new PyInt(0));
     }
@@ -249,8 +249,8 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
 
     //take the money out of their wallet (sends wallet blink event)
     // The amount has to be double!!!
-    if(!call.client->AddBalance(double(-corp_cost))) {
-        codelog(SERVICE__ERROR, "%s: Failed to take money for corp startup!", call.client->GetName());
+    if(!call.player->AddBalance(double(-corp_cost))) {
+        codelog(SERVICE__ERROR, "%s: Failed to take money for corp startup!", call.player->GetName());
         //TODO: do something? I don't wanna deal with deleting the corp right now...
     }
 
@@ -258,15 +258,15 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
     std::string reason = "Creating new corporation: ";
     reason += args.corpName;
     if(!m_db.GiveCash(
-        call.client->GetCharacterID(),
+        call.player->GetCharacterID(),
         RefType_corpRegFee,
-        call.client->GetCharacterID(),  //eve system
+        call.player->GetCharacterID(),  //eve system
         1,
         "1",
-        call.client->GetAccountID(),
+        call.player->GetAccountID(),
         accountCash,
         -corp_cost,
-        call.client->GetBalance(),
+        call.player->GetBalance(),
         reason.c_str()
         )
     ) {
@@ -274,15 +274,15 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
         //no good reason to return... the money has actually been moved.
     }
 
-    uint32 location = call.client->GetLocationID();
+    uint32 location = call.player->GetLocationID();
 
     // Here we send a notification about creating a new corporation...
     Notify_OnCorporaionChanged cc;
     cc.corpID = corpID;
-    if (!m_db.CreateCorporationCreatePacket(cc, call.client->GetCorporationID(), corpID)) {
+    if (!m_db.CreateCorporationCreatePacket(cc, call.player->GetCorporationID(), corpID)) {
         codelog(SERVICE__ERROR, "Failed to create OnCorpChanged notification stream.");
         // This is a big problem, because this way we won't be able to see the difference...
-        call.client->SendErrorMsg("Unable to notify about corp creation. Try logging in again.");
+        call.player->SendErrorMsg("Unable to notify about corp creation. Try logging in again.");
         return (new PyInt(0));
     }
     PyTuple* a1 = cc.Encode();
@@ -299,8 +299,8 @@ PyResult CorpRegistryBound::Handle_AddCorporation(PyCallArgs &call) {
     roles.rolesAtOther = corpRoleAll;
 
     //loads up roles and alters session.
-    if(!JoinCorporation(call.client, corpID, roles)) {
-        codelog(CLIENT__ERROR, "Failed to force char '%s' to join new corporation %u. This will be interesting.", call.client->GetName(), corpID);
+    if(!JoinCorporation(call.player, corpID, roles)) {
+        codelog(CLIENT__ERROR, "Failed to force char '%s' to join new corporation %u. This will be interesting.", call.player->GetName(), corpID);
         return (new PyInt(0));
     }
 
@@ -389,7 +389,7 @@ PyResult CorpRegistryBound::Handle_GetMembers(PyCallArgs &call) {
 PyResult CorpRegistryBound::Handle_GetSuggestedTickerNames(PyCallArgs &call) {
     Call_SingleStringArg arg;
     if (!arg.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -412,19 +412,19 @@ PyResult CorpRegistryBound::Handle_GetStations(PyCallArgs &call) {
     // No param
 
     // Need to fetch stations of current corporation...
-    return m_db.GetStations(call.client->GetCorporationID());
+    return m_db.GetStations(call.player->GetCorporationID());
 }
 
 PyResult CorpRegistryBound::Handle_GetOffices(PyCallArgs &call) {
 
-    _log(CLIENT__MESSAGE, "CorpRegistryBound bind request for OfficeList of corp %u", call.client->GetCorporationID());
+    _log(CLIENT__MESSAGE, "CorpRegistryBound bind request for OfficeList of corp %u", call.player->GetCorporationID());
 
     // First create the boundable object
 
     PyBoundObject *bObj;
     bObj = new SparseCorpOfficeListBound(m_manager, m_db);
     if(bObj == NULL) {
-        _log(SERVICE__ERROR, "%s: Unable to create bound object for:", call.client->GetName());
+        _log(SERVICE__ERROR, "%s: Unable to create bound object for:", call.player->GetName());
         return NULL;
     }
 
@@ -435,7 +435,7 @@ PyResult CorpRegistryBound::Handle_GetOffices(PyCallArgs &call) {
 
     // First time we only need the number of rows, not the data itself
     // Data will be fetched from the SparseRowset
-    uint32 officeN = m_db.GetOffices(call.client->GetCorporationID());
+    uint32 officeN = m_db.GetOffices(call.player->GetCorporationID());
 
     // No idea what this is
     dict->SetItemString("realRowCount", new PyInt(officeN));
@@ -453,18 +453,18 @@ PyResult CorpRegistryBound::Handle_GetOffices(PyCallArgs &call) {
 PyResult SparseCorpOfficeListBound::Handle_Fetch(PyCallArgs &call) {
     Call_TwoIntegerArgs args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
-    return m_db.Fetch(call.client->GetCorporationID(), args.arg1, args.arg2);
+    return m_db.Fetch(call.player->GetCorporationID(), args.arg1, args.arg2);
 }
 
 PyResult CorpRegistryBound::Handle_GetMyApplications(PyCallArgs &call) {
     /// We have a dict
     /// With an STI and an integer
     /// Ignore them for now
-    return m_db.GetMyApplications(call.client->GetCharacterID());
+    return m_db.GetMyApplications(call.player->GetCharacterID());
 }
 
 PyResult CorpRegistryBound::Handle_InsertApplication(PyCallArgs &call) {
@@ -475,17 +475,17 @@ PyResult CorpRegistryBound::Handle_InsertApplication(PyCallArgs &call) {
 
     Call_InsertApplication res;
     if (!res.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
     /// Insert query into the db
     ApplicationInfo aInfo;
-    aInfo.charID = call.client->GetCharacterID();
+    aInfo.charID = call.player->GetCharacterID();
     aInfo.corpID = res.corpID;
     aInfo.appText = res.message;
     if (!m_db.InsertApplication(aInfo)) {
-        codelog(SERVICE__ERROR, "%s: Failed to insert application request", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Failed to insert application request", call.player->GetName());
         return NULL;
     }
 
@@ -514,11 +514,11 @@ PyResult CorpRegistryBound::Handle_InsertApplication(PyCallArgs &call) {
     /// Send an evemail to those who can decide
     /// Well, for the moment, send it to the ceo
     std::string
-        subject = std::string("New application from ") + call.client->GetName(),
+        subject = std::string("New application from ") + call.player->GetName(),
         body = res.message;
     std::vector<int32> recipients;
     recipients.push_back(m_db.GetCorporationCEO(res.corpID));
-    m_manager->lsc_service->SendMail(call.client->GetCharacterID(), recipients, subject, body);
+    m_manager->lsc_service->SendMail(call.player->GetCharacterID(), recipients, subject, body);
 
     /// Reply: ~\x00\x00\x00\x00\x01
     return NULL;
@@ -582,7 +582,7 @@ PyResult CorpRegistryBound::Handle_GetApplications(PyCallArgs &call) {
     /** Incoming:
      *  Nothing at all
      */
-    return m_db.GetApplications(call.client->GetCorporationID());
+    return m_db.GetApplications(call.player->GetCorporationID());
 }
 
 /** AppInfo:
@@ -615,7 +615,7 @@ PyResult CorpRegistryBound::Handle_UpdateApplicationOffer(PyCallArgs &call) {
 
     Call_UpdateApplicationOffer args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -632,17 +632,17 @@ PyResult CorpRegistryBound::Handle_UpdateApplicationOffer(PyCallArgs &call) {
         ApplicationInfo oldInfo(true);
         ApplicationInfo invalidInfo(false);
         OCAC.charID = args.charID;
-        OCAC.corpID = call.client->GetCorporationID();
+        OCAC.corpID = call.player->GetCorporationID();
         if(!m_db.GetCurrentApplicationInfo(OCAC.charID, OCAC.corpID, oldInfo)) {
-            codelog(SERVICE__ERROR, "%s: Failed to query application for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+            codelog(SERVICE__ERROR, "%s: Failed to query application for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
             return NULL;
         }
         newInfo = oldInfo;
         newInfo.status = crpApplicationRejectedByCorporation;
-        newInfo.lastCID = call.client->GetCharacterID();
+        newInfo.lastCID = call.player->GetCharacterID();
 
         if(!m_db.UpdateApplication(newInfo)) {
-            codelog(SERVICE__ERROR, "%s: Failed to update application", call.client->GetName());
+            codelog(SERVICE__ERROR, "%s: Failed to update application", call.player->GetName());
             return NULL;
         }
 
@@ -670,17 +670,17 @@ PyResult CorpRegistryBound::Handle_UpdateApplicationOffer(PyCallArgs &call) {
         ApplicationInfo newInfo(true);
         ApplicationInfo oldInfo(true);
         OCAC.charID = args.charID;
-        OCAC.corpID = call.client->GetCorporationID();
+        OCAC.corpID = call.player->GetCorporationID();
         if(!m_db.GetCurrentApplicationInfo(OCAC.charID, OCAC.corpID, oldInfo)) {
-            codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+            codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
             return NULL;
         }
         newInfo = oldInfo;
         newInfo.status = crpApplicationAcceptedByCharacter;
-        newInfo.lastCID = call.client->GetCharacterID();
+        newInfo.lastCID = call.player->GetCharacterID();
 
         if(!m_db.UpdateApplication(newInfo)) {
-            codelog(SERVICE__ERROR, "%s: Failed to update application for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+            codelog(SERVICE__ERROR, "%s: Failed to update application for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
             return NULL;
         }
 
@@ -759,7 +759,7 @@ PyResult CorpRegistryBound::Handle_UpdateApplicationOffer(PyCallArgs &call) {
 
         //NOTE: this really should happen sooner, in case it fails.
         if(!m_db.JoinCorporation(args.charID, ocmc.newCorpID, ocmc.oldCorpID, CorpMemberInfo())) {
-            codelog(SERVICE__ERROR, "%s: Failed to record corp join for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+            codelog(SERVICE__ERROR, "%s: Failed to record corp join for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
             return NULL;
         }
 
@@ -780,7 +780,7 @@ PyResult CorpRegistryBound::Handle_DeleteApplication(PyCallArgs & call) {
      */
     Call_TwoIntegerArgs args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return(new PyInt(0));
     }
 
@@ -791,14 +791,14 @@ PyResult CorpRegistryBound::Handle_DeleteApplication(PyCallArgs & call) {
     OCAC.corpID = args.arg1;
     OCAC.charID = args.arg2;
     if(!m_db.GetCurrentApplicationInfo(OCAC.charID, OCAC.corpID, oldInfo)) {
-        codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+        codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
         return(new PyInt(0));
     }
 
     FillOCApplicationChange(OCAC, oldInfo, newInfo);
 
     if(!m_db.DeleteApplication(oldInfo)) {
-        codelog(SERVICE__ERROR, "%s: Failed to delete application info for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+        codelog(SERVICE__ERROR, "%s: Failed to delete application info for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
         return(new PyInt(0));
     }
 
@@ -816,17 +816,17 @@ PyResult CorpRegistryBound::Handle_DeleteApplication(PyCallArgs & call) {
 PyResult CorpRegistryBound::Handle_UpdateApplication(PyCallArgs &call) {
     Call_UpdateApplication args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
     ApplicationInfo oldInfo(true);
     ApplicationInfo newInfo;
     Notify_OnCorporationApplicationChanged OCAC;
-    OCAC.charID = call.client->GetCharacterID();
+    OCAC.charID = call.player->GetCharacterID();
     OCAC.corpID = args.corpID;
     if(!m_db.GetCurrentApplicationInfo(OCAC.charID, OCAC.corpID, oldInfo)) {
-        codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+        codelog(SERVICE__ERROR, "%s: Failed to query application info for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
         return(new PyInt(0));
     }
     newInfo = oldInfo;
@@ -834,7 +834,7 @@ PyResult CorpRegistryBound::Handle_UpdateApplication(PyCallArgs &call) {
     newInfo.status = args.status;
 
     if(!m_db.UpdateApplication(newInfo)) {
-        codelog(SERVICE__ERROR, "%s: Failed to update application info for char %u corp %u", call.client->GetName(), OCAC.charID, OCAC.corpID);
+        codelog(SERVICE__ERROR, "%s: Failed to update application info for char %u corp %u", call.player->GetName(), OCAC.charID, OCAC.corpID);
         return(new PyInt(0));
     }
 
@@ -859,16 +859,16 @@ PyResult CorpRegistryBound::Handle_UpdateDivisionNames(PyCallArgs &call) {
     Call_UpdateDivisionNames divs;
 
     if (!divs.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
     Notify_IntRaw notif;
     notif.data = new PyDict();
-    notif.key = call.client->GetCorporationID();
+    notif.key = call.player->GetCorporationID();
 
     if (!m_db.UpdateDivisionNames(notif.key, divs, (PyDict *)notif.data)) {
-        codelog(SERVICE__ERROR, "%s: Failed to update division names for corp %u", call.client->GetName(), notif.key);
+        codelog(SERVICE__ERROR, "%s: Failed to update division names for corp %u", call.player->GetName(), notif.key);
         return(new PyNone());
     }
 
@@ -888,16 +888,16 @@ PyResult CorpRegistryBound::Handle_UpdateCorporation(PyCallArgs &call) {
     Call_UpdateCorporation upd;
 
     if (!upd.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
     Notify_IntRaw notif;
-    notif.key = call.client->GetCorporationID();
+    notif.key = call.player->GetCorporationID();
     notif.data = new PyDict();
 
     if (!m_db.UpdateCorporation(notif.key, upd, (PyDict*)notif.data)) {
-        codelog(SERVICE__ERROR, "%s: Failed to update corporation data for corp %u", call.client->GetName(), notif.key);
+        codelog(SERVICE__ERROR, "%s: Failed to update corporation data for corp %u", call.player->GetName(), notif.key);
         return new PyNone();
     }
 
@@ -916,7 +916,7 @@ PyResult CorpRegistryBound::Handle_UpdateLogo(PyCallArgs &call) {
     Call_UpdateLogo upd;
 
     if (!upd.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -924,7 +924,7 @@ PyResult CorpRegistryBound::Handle_UpdateLogo(PyCallArgs &call) {
     uint32 logo_changeu;
     double logo_change;
     if(!m_db.GetConstant("corpLogoChangeCost", logo_changeu)) {
-        codelog(SERVICE__ERROR, "%s: Failed to determine logo change costs.", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Failed to determine logo change costs.", call.player->GetName());
         return(new PyNone());
     }
     logo_change = logo_changeu;
@@ -932,14 +932,14 @@ PyResult CorpRegistryBound::Handle_UpdateLogo(PyCallArgs &call) {
 
     // It's here, to avoid callign GetCorporationID all the time
     Notify_IntRaw notif;
-    notif.key = call.client->GetCorporationID();
+    notif.key = call.player->GetCorporationID();
     notif.data = new PyDict();
 
     double corp_orig = m_db.GetCorpBalance(notif.key);
     if( corp_orig < logo_change )
     {
-        _log( SERVICE__ERROR, "%s: Cannot afford corporation logo change costs!", call.client->GetName() );
-        call.client->SendErrorMsg( "Your corporation doesn't have enough money (%u ISK) to change it's logo!", logo_changeu );
+        _log( SERVICE__ERROR, "%s: Cannot afford corporation logo change costs!", call.player->GetName() );
+        call.player->SendErrorMsg( "Your corporation doesn't have enough money (%u ISK) to change it's logo!", logo_changeu );
 
         PyDecRef( notif.data );
         return new PyNone;
@@ -958,7 +958,7 @@ PyResult CorpRegistryBound::Handle_UpdateLogo(PyCallArgs &call) {
     // The amount has to be double!!!
     if( !m_db.AddBalanceToCorp( notif.key, -logo_change ) )
     {
-        codelog( SERVICE__ERROR, "%s: Failed to take money for corp logo change!", call.client->GetName() );
+        codelog( SERVICE__ERROR, "%s: Failed to take money for corp logo change!", call.player->GetName() );
 
         PyDecRef( notif.data );
         return new PyNone;
@@ -996,7 +996,7 @@ PyResult CorpRegistryBound::Handle_UpdateLogo(PyCallArgs &call) {
     m_manager->entity_list.Multicast("OnAccountChange", "*corpid&corpAccountKey", &answer, mct);
 
     // for those in the station
-    mct.locations.insert(call.client->GetLocationID());
+    mct.locations.insert(call.player->GetLocationID());
     answer = notif.Encode();
     m_manager->entity_list.Multicast("OnCorporationChanged", "corpid", &answer, mct);
 

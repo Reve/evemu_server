@@ -29,7 +29,12 @@
 #include "mail/MailDB.h"
 #include "mail/MailMgrService.h"
 
-PyCallable_Make_InnerDispatcher(MailMgrService)
+//PyCallable_Make_InnerDispatcher(MailMgrService)
+
+class MailMgrService::Dispatcher: public PyCallableDispatcher<MailMgrService> {
+public:
+		Dispatcher(MailMgrService *c): PyCallableDispatcher<MailMgrService>(c) {}
+};
 
 MailMgrService::MailMgrService(PyServiceMgr *mgr)
 : PyService(mgr, "mailMgr"),
@@ -83,7 +88,7 @@ PyResult MailMgrService::Handle_SendMail(PyCallArgs &call)
         return NULL;
     }
 
-    int sender = call.client->GetCharacterID();
+    int sender = call.player->GetCharacterID();
     return new PyInt(m_db->SendMail(sender, args.toCharacterIDs, args.toListID, args.toCorpOrAllianceID, args.title, args.body, args.isReplyTo, args.isForwardedFrom));
 }
 
@@ -118,8 +123,8 @@ PyResult MailMgrService::Handle_SyncMail(PyCallArgs &call)
 
     PyDict* dummy = new PyDict;
     dummy->SetItemString("oldMail", new PyNone());
-    dummy->SetItemString("newMail", m_db->GetNewMail(call.client->GetCharacterID()));
-    dummy->SetItemString("mailStatus", m_db->GetMailStatus(call.client->GetCharacterID()));
+    dummy->SetItemString("newMail", m_db->GetNewMail(call.player->GetCharacterID()));
+    dummy->SetItemString("mailStatus", m_db->GetMailStatus(call.player->GetCharacterID()));
     return new PyObject("util.KeyVal", dummy);
 }
 
@@ -144,7 +149,7 @@ PyResult MailMgrService::Handle_CreateLabel(PyCallArgs &call)
     }
 
     uint32 ret;
-    if (m_db->CreateLabel(call.client->GetCharacterID(), args, ret))
+    if (m_db->CreateLabel(call.player->GetCharacterID(), args, ret))
         return new PyInt(ret);
     return NULL;
 }
@@ -158,7 +163,7 @@ PyResult MailMgrService::Handle_DeleteLabel(PyCallArgs &call)
         return NULL;
     }
 
-    m_db->DeleteLabel(call.client->GetCharacterID(), args.arg /*labelID*/);
+    m_db->DeleteLabel(call.player->GetCharacterID(), args.arg /*labelID*/);
 
     return NULL;
 }
@@ -185,7 +190,7 @@ PyResult MailMgrService::Handle_EditLabel(PyCallArgs &call)
         return NULL;
     }
 
-    m_db->EditLabel(call.client->GetCharacterID(), args);
+    m_db->EditLabel(call.player->GetCharacterID(), args);
     return NULL;
 }
 
@@ -210,7 +215,7 @@ PyResult MailMgrService::Handle_GetBody(PyCallArgs &call)
 
 PyResult MailMgrService::Handle_GetLabels(PyCallArgs &call)
 {
-    return m_db->GetLabels(call.client->GetCharacterID());
+    return m_db->GetLabels(call.player->GetCharacterID());
 }
 
 PyResult MailMgrService::Handle_GetMailHeaders(PyCallArgs &call)

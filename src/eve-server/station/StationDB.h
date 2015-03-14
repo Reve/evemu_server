@@ -45,8 +45,23 @@ public:
         if (mLoaded == true)
             return true;
 
+		DBcore db = DBcore();
+
+		DBerror err;
+		if( !db.Open( err,
+			sConfig.database.host.c_str(),
+			sConfig.database.username.c_str(),
+			sConfig.database.password.c_str(),
+			sConfig.database.db.c_str(),
+			sConfig.database.port ) )
+		{
+			sLog.Error( "server init", "Unable to connect to the database: %s", err.c_str() );
+			std::cout << std::endl << "press any key to exit...";  std::cin.get();
+			return 1;
+		}
+
         DBQueryResult res;
-        if(!sDatabase.RunQuery(res,    "SELECT "
+        if(!db.RunQuery(res,    "SELECT "
             " solarSystemID,"                    // int
             " solarSystemName,"                    // string
             " x, y, z,"                            // double
@@ -82,6 +97,7 @@ public:
         sLog.Log("Station DB", "Storing solar system data Done");
         mLoaded = true;
 
+		db.Close();
         return true;
     }
 

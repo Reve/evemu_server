@@ -34,7 +34,7 @@ class PyCallable;
 class PyBoundObject;
 class PyPacket;
 class ServiceDB;
-class Player;
+class Client;
 class PyRep;
 class PySubStruct;
 class EntityList;
@@ -47,7 +47,7 @@ class LSCService;
 class PyServiceMgr
 {
 public:
-    PyServiceMgr( uint32 nodeID/*, EntityList& elist, ItemFactory& ifactory */);
+    PyServiceMgr( uint32 nodeID, EntityList& elist, ItemFactory& ifactory );
     ~PyServiceMgr();
 
     void Process();
@@ -58,10 +58,10 @@ public:
     uint32 GetNodeID() const { return(m_nodeID); }
 
     //object binding, not fully understood yet.
-    PySubStruct *BindObject(Player *who, PyBoundObject *obj, PyDict **dict = NULL);
+    PySubStruct *BindObject(Client *who, PyBoundObject *obj, PyDict **dict = NULL);
     PyBoundObject *FindBoundObject(uint32 bindID);
     void ClearBoundObject(uint32 bindID);
-    void ClearBoundObjects(Player *who);
+    void ClearBoundObjects(Client *who);
 
     //this is a hack and needs to die:
     ServiceDB &serviceDB() { return(m_svcDB); }
@@ -83,7 +83,7 @@ protected:
 
     struct BoundObject
     {
-        Player *player;    //we do not own this.
+        Client *client;    //we do not own this.
         PyBoundObject *destination;    //we own this. PyServiceMgr deletes it
     };
 

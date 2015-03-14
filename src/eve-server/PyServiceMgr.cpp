@@ -30,10 +30,9 @@
 #include "PyServiceMgr.h"
 #include "PyBoundObject.h"
 
-PyServiceMgr::PyServiceMgr( uint32 nodeID/*, EntityList& elist, ItemFactory& ifactory */)
-: 
- //item_factory( ifactory ),
- // entity_list( elist ),
+PyServiceMgr::PyServiceMgr( uint32 nodeID, EntityList& elist, ItemFactory& ifactory ): 
+  item_factory( ifactory ),
+  entity_list( elist ),
   lsc_service( NULL ),
   cache_service( NULL ),
   m_nextBindID( 100 ),
@@ -87,7 +86,7 @@ PyService *PyServiceMgr::LookupService(const std::string &name) {
     return NULL;
 }
 
-PySubStruct *PyServiceMgr::BindObject(Player *c, PyBoundObject *cb, PyDict **dict) {
+PySubStruct *PyServiceMgr::BindObject(Client *c, PyBoundObject *cb, PyDict **dict) {
     if(cb == NULL)
     {
         sLog.Error("Service Mgr", "Tried to bind a NULL object!");
@@ -97,7 +96,7 @@ PySubStruct *PyServiceMgr::BindObject(Player *c, PyBoundObject *cb, PyDict **dic
     cb->_SetNodeBindID(GetNodeID(), _GetBindID());    //tell the object what its bind ID is.
 
     BoundObject obj;
-    obj.player = c;
+    obj.client = c;
     obj.destination = cb;
 
     m_boundObjects[cb->bindID()] = obj;
@@ -128,13 +127,13 @@ PySubStruct *PyServiceMgr::BindObject(Player *c, PyBoundObject *cb, PyDict **dic
     return new PySubStruct(new PySubStream(objt));
 }
 
-void PyServiceMgr::ClearBoundObjects(Player *who) {
+void PyServiceMgr::ClearBoundObjects(Client *who) {
     ObjectsBoundMapItr cur, end;
     cur = m_boundObjects.begin();
     end = m_boundObjects.end();
 
     while(cur != end) {
-        if(cur->second.player == who)
+        if(cur->second.client == who)
         {
             //sLog.Debug("Service Mgr", "Clearing bound object %s", cur->first.c_str());
             cur->second.destination->Release();

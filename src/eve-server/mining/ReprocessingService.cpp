@@ -164,7 +164,7 @@ PyResult ReprocessingServiceBound::Handle_GetReprocessingInfo(PyCallArgs &call) 
     rsp.tax = m_tax;
     rsp.reputation = 0.0;   // this should be drain from DB
     rsp.yield = m_staEfficiency;
-    rsp.combinedyield = _CalcReprocessingEfficiency(call.client);
+    rsp.combinedyield = _CalcReprocessingEfficiency(call.player);
 
     result = rsp.Encode();
 
@@ -178,7 +178,7 @@ PyResult ReprocessingServiceBound::Handle_GetQuote(PyCallArgs &call) {
         return NULL;
     }
 
-    return(_GetQuote(call_args.arg, call.client));
+    return(_GetQuote(call_args.arg, call.player));
 }
 
 PyResult ReprocessingServiceBound::Handle_GetQuotes(PyCallArgs &call) {
@@ -196,7 +196,7 @@ PyResult ReprocessingServiceBound::Handle_GetQuotes(PyCallArgs &call) {
     for(; cur != end; cur++) {
         PyRep *quote = NULL;
         try {
-            quote = _GetQuote(*cur, call.client);
+            quote = _GetQuote(*cur, call.player);
         } catch(PyException &) {
             // ignore all exceptions
             continue;
@@ -209,8 +209,8 @@ PyResult ReprocessingServiceBound::Handle_GetQuotes(PyCallArgs &call) {
 }
 
 PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
-    if(!IsStation(call.client->GetLocationID())) {
-        _log(SERVICE__MESSAGE, "Character %s tried to reprocess, but isn't is station.", call.client->GetName());
+    if(!IsStation(call.player->GetLocationID())) {
+        _log(SERVICE__MESSAGE, "Character %s tried to reprocess, but isn't is station.", call.player->GetName());
         return NULL;
     }
 
@@ -222,7 +222,7 @@ PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
     }
 
     if(call_args.ownerID == 0)
-        call_args.ownerID = call.client->GetCharacterID();
+        call_args.ownerID = call.player->GetCharacterID();
 
     if(call_args.flag == 0)
         call_args.flag = flagHangar;
@@ -251,7 +251,7 @@ PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
             throw(PyException(MakeUserError("QuantityLessThanMinimumPortion", args)));
         }
 
-        double efficiency = _CalcReprocessingEfficiency( call.client, item );
+        double efficiency = _CalcReprocessingEfficiency( call.player, item );
 
         std::vector<Recoverable> recoverables;
         if( !m_db.GetRecoverables( item->typeID(), recoverables ) )
@@ -267,7 +267,7 @@ PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
 
             ItemData idata(
                 cur_rec->typeID,
-                call.client->GetCharacterID(),
+                call.player->GetCharacterID(),
                 0, //temp location
                 flagHangar,
                 quantity
@@ -277,7 +277,7 @@ PyResult ReprocessingServiceBound::Handle_Reprocess(PyCallArgs &call) {
             if( !i )
                 continue;
 
-            i->Move(call.client->GetStationID(), flagHangar);
+            i->Move(call.player->GetStationID(), flagHangar);
         }
 
         uint32 qtyLeft = item->quantity() % item->type().portionSize();

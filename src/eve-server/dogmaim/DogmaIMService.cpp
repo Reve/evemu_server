@@ -132,7 +132,7 @@ PyResult DogmaIMService::Handle_GetAttributeTypes(PyCallArgs &call) {
 
 PyResult DogmaIMBound::Handle_GetCharacterBaseAttributes(PyCallArgs &call)
 {
-    CharacterRef cref = call.client->GetChar();
+    CharacterRef cref = call.player->GetChar();
 
     PyDict* result = new PyDict();
     result->SetItem(new PyInt(AttrIntelligence), new PyInt(static_cast<int32>(cref->GetAttribute(AttrIntelligence).get_int())));
@@ -206,12 +206,12 @@ PyResult DogmaIMBound::Handle_CheckSendLocationInfo( PyCallArgs& call )
 
 PyResult DogmaIMBound::Handle_GetTargets(PyCallArgs &call) {
     //no arguments
-    return call.client->targets.GetTargets();
+    return call.player->targets.GetTargets();
 }
 
 PyResult DogmaIMBound::Handle_GetTargeters(PyCallArgs &call) {
     //no arguments
-    return call.client->targets.GetTargeters();
+    return call.player->targets.GetTargeters();
 }
 
 
@@ -220,11 +220,11 @@ PyResult DogmaIMBound::Handle_SetModuleOnline( PyCallArgs& call ) {
 
 	if( !args.Decode( &call.tuple ) )
     {
-        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName() );
+        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName() );
         return NULL;
     }
 
-	call.client->GetShip()->Online(args.arg2);
+	call.player->GetShip()->Online(args.arg2);
 
 	return NULL;
 }
@@ -234,11 +234,11 @@ PyResult DogmaIMBound::Handle_TakeModuleOffline( PyCallArgs& call ) {
 
 	if( !args.Decode( &call.tuple ) )
     {
-        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName() );
+        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName() );
         return NULL;
     }
 
-	call.client->GetShip()->Offline(args.arg2);
+	call.player->GetShip()->Offline(args.arg2);
 
 	return NULL;
 }
@@ -248,7 +248,7 @@ PyResult DogmaIMBound::Handle_LoadAmmoToBank( PyCallArgs& call ) {
 
 	if( !args.Decode( &call.tuple ) )
     {
-        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName() );
+        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName() );
         return NULL;
     }
 
@@ -263,7 +263,7 @@ PyResult DogmaIMBound::Handle_LoadAmmoToBank( PyCallArgs& call ) {
 	// which is basically supporting only single charge stacks applied to module!
 
 	// Get Reference to Ship, Module, and Charge
-	ShipRef shipRef = call.client->GetShip();
+	ShipRef shipRef = call.player->GetShip();
 	InventoryItemRef moduleRef = shipRef->GetModule(args.moduleItemID);
 	if( moduleRef == NULL )
 	{
@@ -311,7 +311,7 @@ PyResult DogmaIMBound::Handle_Activate( PyCallArgs& call )
             {
                 effect = call.tuple->items.at( 1 )->AsInt()->value();
 
-                SystemEntity * se = call.client->System()->get( itemID );
+                SystemEntity * se = call.player->System()->get( itemID );
 
                 if( se == NULL )
                 {
@@ -362,12 +362,12 @@ PyResult DogmaIMBound::Handle_Activate( PyCallArgs& call )
     {
         if( !args.Decode( &call.tuple ) )
         {
-            codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName() );
+            codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName() );
             return NULL;
         }
 
         //TODO: make sure we are allowed to do this.
-        return new PyInt( call.client->GetShip()->Activate( args.itemID, args.effectName, args.target, args.repeat ) );
+        return new PyInt( call.player->GetShip()->Activate( args.itemID, args.effectName, args.target, args.repeat ) );
     }
 
     return NULL;
@@ -378,12 +378,12 @@ PyResult DogmaIMBound::Handle_Deactivate( PyCallArgs& call )
     Call_Dogma_Deactivate args;
     if( !args.Decode( &call.tuple ) )
     {
-        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName() );
+        codelog( SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName() );
         return NULL;
     }
 
     //TODO: make sure we are allowed to do this.
-    call.client->GetShip()->Deactivate( args.itemID, args.effectName );
+    call.player->GetShip()->Deactivate( args.itemID, args.effectName );
 
     return NULL;
 }
@@ -403,28 +403,28 @@ PyResult DogmaIMBound::Handle_CancelOverloading( PyCallArgs& call ) {
 PyResult DogmaIMBound::Handle_AddTarget(PyCallArgs &call) {
     Call_SingleIntegerArg args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName());
         return NULL;
     }
 
-    SystemManager *smgr = call.client->System();
+    SystemManager *smgr = call.player->System();
     if(smgr == NULL) {
-        codelog(SERVICE__ERROR, "Unable to find system manager from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to find system manager from '%s'", call.player->GetName());
         return NULL;
     }
     SystemEntity *target = smgr->get(args.arg);
     if(target == NULL) {
-        codelog(SERVICE__ERROR, "Unable to find entity %u in system %u from '%s'", args.arg, smgr->GetID(), call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to find entity %u in system %u from '%s'", args.arg, smgr->GetID(), call.player->GetName());
         return NULL;
     }
 
-    ShipRef ship = call.client->GetShip();
+    ShipRef ship = call.player->GetShip();
 
-    if( !call.client->targets.StartTargeting(target, ship) )
+    if( !call.player->targets.StartTargeting(target, ship) )
         return NULL;
 
     // For Debugging purposes, put a message in the log to print out the range to the target:
-    GVector vectorToTarget( call.client->GetPosition(), target->GetPosition() );
+    GVector vectorToTarget( call.player->GetPosition(), target->GetPosition() );
     double rangeToTarget = vectorToTarget.length();
     // TODO: calculate double distance = SQRT(x^2 + y^2 + z^), where x,y,z are to.x-from.x, etc
     sLog.Warning( "DogmaIMBound::Handle_AddTarget()", "TARGET ADDED - Range to Target = %f meters.", rangeToTarget );
@@ -439,27 +439,27 @@ PyResult DogmaIMBound::Handle_AddTarget(PyCallArgs &call) {
 PyResult DogmaIMBound::Handle_RemoveTarget(PyCallArgs &call) {
     Call_SingleIntegerArg args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName());
         return NULL;
     }
 
-    SystemManager *smgr = call.client->System();
+    SystemManager *smgr = call.player->System();
     if(smgr == NULL) {
-        codelog(SERVICE__ERROR, "Unable to find system manager from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to find system manager from '%s'", call.player->GetName());
         return NULL;
     }
     SystemEntity *target = smgr->get(args.arg);
     if(target == NULL) {
-        codelog(SERVICE__ERROR, "Unable to find entity %u in system %u from '%s'", args.arg, smgr->GetID(), call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to find entity %u in system %u from '%s'", args.arg, smgr->GetID(), call.player->GetName());
         return NULL;
     }
 
     // For Debugging purposes, put a message in the log to print out the range to the target:
-    GVector vectorToTarget( call.client->GetPosition(), target->GetPosition() );
+    GVector vectorToTarget( call.player->GetPosition(), target->GetPosition() );
     double rangeToTarget = vectorToTarget.length();
     sLog.Warning( "DogmaIMBound::Handle_AddTarget()", "TARGET REMOVED - Range to Target = %f meters.", rangeToTarget );
 
-    call.client->targets.ClearTarget(target);
+    call.player->targets.ClearTarget(target);
 
     return NULL;
 }
@@ -467,7 +467,7 @@ PyResult DogmaIMBound::Handle_RemoveTarget(PyCallArgs &call) {
 PyResult DogmaIMBound::Handle_ClearTargets(PyCallArgs &call) {
     //no arguments.
 
-    call.client->targets.ClearTargets();
+    call.player->targets.ClearTargets();
 
     return NULL;
 }
@@ -491,7 +491,7 @@ PyResult DogmaIMBound::Handle_GetAllInfo( PyCallArgs& call )
     //arg1: getCharInfo, arg2: getShipInfo
     Call_TwoBoolArgs args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Unable to decode arguments from '%s'", call.player->GetName());
         return NULL;
     }
 
@@ -500,7 +500,7 @@ PyResult DogmaIMBound::Handle_GetAllInfo( PyCallArgs& call )
     PyDict *rsp = new PyDict;
 
     rsp->SetItemString("charInfo", new PyNone);
-    rsp->SetItemString("activeShipID", new PyInt(call.client->GetShipID()));
+    rsp->SetItemString("activeShipID", new PyInt(call.player->GetShipID()));
     rsp->SetItemString("locationInfo", new PyDict);
     rsp->SetItemString("shipInfo", new PyNone);
     rsp->SetItemString("shipModifiedCharAttribs", new PyNone);
@@ -511,9 +511,9 @@ PyResult DogmaIMBound::Handle_GetAllInfo( PyCallArgs& call )
 	// Setting "charInfo" in the Dictionary:
     if(args.arg1)
     {
-        PyDict *charResult = call.client->GetChar()->CharGetInfo();
+        PyDict *charResult = call.player->GetChar()->CharGetInfo();
         if(charResult == NULL) {
-            codelog(SERVICE__ERROR, "Unable to build char info for char %u", call.client->GetCharacterID());
+            codelog(SERVICE__ERROR, "Unable to build char info for char %u", call.player->GetCharacterID());
             return NULL;
         }
 
@@ -532,9 +532,9 @@ PyResult DogmaIMBound::Handle_GetAllInfo( PyCallArgs& call )
 	// Setting "shipInfo" in the Dictionary:
 	if(args.arg2)
     {
-        PyDict *shipResult = call.client->GetShip()->ShipGetInfo();
+        PyDict *shipResult = call.player->GetShip()->ShipGetInfo();
         if(shipResult == NULL) {
-            codelog(SERVICE__ERROR, "Unable to build ship info for ship %u", call.client->GetShipID());
+            codelog(SERVICE__ERROR, "Unable to build ship info for ship %u", call.player->GetShipID());
             return NULL;
         }
         rsp->SetItemString("shipInfo", shipResult);
@@ -555,16 +555,16 @@ PyResult DogmaIMBound::Handle_GetAllInfo( PyCallArgs& call )
 
     //Contains a dict of the ship and its modules
 
-    if(call.client->GetShip() == NULL) {
-        codelog(SERVICE__ERROR, "Unable to build ship status for ship %u", call.client->GetShipID());
+    if(call.player->GetShip() == NULL) {
+        codelog(SERVICE__ERROR, "Unable to build ship status for ship %u", call.player->GetShipID());
         return NULL;
     }
-    PyDict *shipState = call.client->GetShip()->ShipGetState();
+    PyDict *shipState = call.player->GetShip()->ShipGetState();
     rspShipState->items[0] = shipState;
 
     //Contains a dict with the ship and an empty dict
     PyDict *shipStateItem2 = new PyDict();
-    shipStateItem2->SetItem(new PyInt(call.client->GetShipID()), new PyDict());
+    shipStateItem2->SetItem(new PyInt(call.player->GetShipID()), new PyDict());
     rspShipState->items[1] = shipStateItem2;
 
     //Some PyObjectEx

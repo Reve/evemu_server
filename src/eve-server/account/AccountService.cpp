@@ -32,9 +32,10 @@
 
 PyCallable_Make_InnerDispatcher(AccountService)
 
-AccountService::AccountService(PyServiceMgr *mgr)
-: PyService(mgr, "account"),
-  m_dispatch(new Dispatcher(this))
+AccountService::AccountService(PyServiceMgr *mgr, DBcore *db): 
+	PyService(mgr, "account"), 
+	m_db(db),
+	m_dispatch(new Dispatcher(this))
 {
     _SetCallDispatcher(m_dispatch);
 
@@ -84,14 +85,14 @@ PyResult AccountService::Handle_GetCashBalance(PyCallArgs &call) {
 
         if(corporate_wallet)
             //corporate wallet
-            return new PyFloat( m_db.GetCorpBalance( call.client->GetCorporationID() ) );
+            return new PyFloat( account_db.GetCorpBalance(m_db, call.player->GetCorporationID() ) );
         else
             //personal wallet
-            return new PyFloat( call.client->GetBalance() );
+            return new PyFloat( call.player->GetBalance() );
     }
     else if (hasAccountKey && accountKey == ACCOUNT_KEY_AURUM)
     {
-        return new PyFloat(call.client->GetAurBalance());
+        return new PyFloat(call.player->GetAurBalance());
     }
 
 	// FAILSAFE:
@@ -111,7 +112,7 @@ PyResult AccountService::Handle_GetEntryTypes(PyCallArgs &call) {
     //check to see if this method is in the cache already.
     if(!m_manager->cache_service->IsCacheLoaded(method_id)) {
         //this method is not in cache yet, load up the contents and cache it.
-        result = m_db.GetEntryTypes();
+        result = account_db.GetEntryTypes(m_db);
         if(result == NULL) {
             codelog(SERVICE__ERROR, "Failed to load cache, generating empty contents.");
             result = new PyNone();
@@ -134,7 +135,7 @@ PyResult AccountService::Handle_GetKeyMap(PyCallArgs &call) {
     //check to see if this method is in the cache already.
     if(!m_manager->cache_service->IsCacheLoaded(method_id)) {
         //this method is not in cache yet, load up the contents and cache it.
-        result = m_db.GetKeyMap();
+        result = account_db.GetKeyMap(m_db);
         if(result == NULL) {
             codelog(SERVICE__ERROR, "Failed to load cache, generating empty contents.");
             result = new PyNone();
@@ -160,15 +161,15 @@ PyResult AccountService::Handle_GiveCash(PyCallArgs &call) {
     if(args.amount == 0)
         return NULL;
 
-    if(args.amount < 0 || args.amount > call.client->GetBalance()) {
-        _log(CLIENT__ERROR, "%s: Invalid amount in GiveCash(): %.2f", call.client->GetName(), args.amount);
-        call.client->SendErrorMsg("Invalid amount '%.2f'", args.amount);
+    if(args.amount < 0 || args.amount > call.player->GetBalance()) {
+        _log(CLIENT__ERROR, "%s: Invalid amount in GiveCash(): %.2f", call.player->GetName(), args.amount);
+        call.player->SendErrorMsg("Invalid amount '%.2f'", args.amount);
         return NULL;
     }
 
-    SystemManager *system = call.client->System();
+    SystemManager *system = call.player->System();
     if(system == NULL) {
-        codelog(CLIENT__ERROR, "%s: bad system", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: bad system", call.player->GetName());
         return NULL;
     }
 
@@ -178,11 +179,11 @@ PyResult AccountService::Handle_GiveCash(PyCallArgs &call) {
     if(other == NULL) {
         // then the money has to be sent to a corporation...
         // check this too
-        if (m_db.CheckIfCorporation(args.destination)) {
+        if (account_db.CheckIfCorporation(m_db, args.destination)) {
             targetIsChar = false;
         } else {
-            _log(CLIENT__ERROR, "%s: Failed to find character %u", call.client->GetName(), args.destination);
-            call.client->SendErrorMsg("Unable to find the target");
+            _log(CLIENT__ERROR, "%s: Failed to find character %u", call.player->GetName(), args.destination);
+            call.player->SendErrorMsg("Unable to find the target");
             return NULL;
         }
     } else {
@@ -191,38 +192,38 @@ PyResult AccountService::Handle_GiveCash(PyCallArgs &call) {
 
 
     if (targetIsChar) {
-        return GiveCashToChar(call.client, other, args.amount, args.reason.c_str(), RefType_playerDonation);
+        return GiveCashToChar(call.player, other, args.amount, args.reason.c_str(), RefType_playerDonation);
     } else {
         // here comes the corp's stuff
-        return GiveCashToCorp(call.client, args.destination, args.amount, args.reason.c_str(), RefType_playerDonation);
+        return GiveCashToCorp(call.player, args.destination, args.amount, args.reason.c_str(), RefType_playerDonation);
     }
 }
 
-PyTuple * AccountService::GiveCashToCorp(Player * const client, uint32 corpID, double amount, const char *reason, JournalRefType refTypeID) {
-    if(!client->AddBalance(-amount)) {
+PyTuple * AccountService::GiveCashToCorp(Player * const player, uint32 corpID, double amount, const char *reason, JournalRefType refTypeID) {
+    if(!player->AddBalance(-amount)) {
         _log(CLIENT__ERROR, "%s: Failed to remove %.2f ISK from %u for donation to %u",
-            client->GetName(),
+            player->GetName(),
             amount,
-            client->GetCharacterID(),
+            player->GetCharacterID(),
             corpID );
-        client->SendErrorMsg("Failed to transfer money from your account.");
+        player->SendErrorMsg("Failed to transfer money from your account.");
         return NULL;
     }
-    if(!m_db.AddBalanceToCorp(corpID, amount)) {
+    if(!account_db.AddBalanceToCorp(m_db, corpID, amount)) {
         _log(CLIENT__ERROR, "%s: Failed to add %.2f ISK to %u for donation from %u",
-            client->GetName(),
+            player->GetName(),
             amount,
             corpID,
-            client->GetCharacterID());
-        client->SendErrorMsg("Failed to transfer money to your destination.");
+            player->GetCharacterID());
+        player->SendErrorMsg("Failed to transfer money to your destination.");
 
         //try to refund the money..
-        client->AddBalance(amount);
+        player->AddBalance(amount);
 
         return NULL;
     }
 
-    double cnb = m_db.GetCorpBalance(corpID);
+    double cnb = account_db.GetCorpBalance(m_db, corpID);
 
     // Send notification about the cash change
     OnAccountChange oac;
@@ -236,16 +237,16 @@ PyTuple * AccountService::GiveCashToCorp(Player * const client, uint32 corpID, d
     m_manager->entity_list.Multicast("OnAccountChange", "*corpid&corpAccountKey", &answer, mct);
 
     //record the transactions in the wallet.
-    if(!m_db.GiveCash(
-        client->GetCharacterID(),
+    if(!account_db.GiveCash( m_db,
+        player->GetCharacterID(),
         refTypeID,
-        client->GetCharacterID(),
+        player->GetCharacterID(),
         corpID,
         "unknown",
-        client->GetAccountID(),
+        player->GetAccountID(),
         accountCash,
         -amount,
-        client->GetBalance(),
+        player->GetBalance(),
         reason
         )
     ) {
@@ -253,10 +254,10 @@ PyTuple * AccountService::GiveCashToCorp(Player * const client, uint32 corpID, d
         //no good reason to return... the money has actually been moved.
     }
 
-    if(!m_db.GiveCash(
+    if(!account_db.GiveCash(m_db,
         corpID,
         refTypeID,
-        client->GetCharacterID(),
+        player->GetCharacterID(),
         corpID,
         "unknown",
         corpID,
@@ -278,42 +279,42 @@ PyTuple * AccountService::GiveCashToCorp(Player * const client, uint32 corpID, d
     return ans;
 }
 
-PyTuple * AccountService::GiveCashToChar(Player * const client, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
-    if(!client->AddBalance(-amount)) {
+PyTuple * AccountService::GiveCashToChar(Player * const player, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
+    if(!player->AddBalance(-amount)) {
         _log(CLIENT__ERROR, "%s: Failed to remove %.2f ISK from %u for donation to %u",
-            client->GetName(),
+            player->GetName(),
             amount,
-            client->GetCharacterID(),
+            player->GetCharacterID(),
             other->GetCharacterID() );
-        client->SendErrorMsg("Failed to transfer money from your account.");
+        player->SendErrorMsg("Failed to transfer money from your account.");
         return NULL;
     }
     if(!other->AddBalance(amount)) {
         _log(CLIENT__ERROR, "%s: Failed to add %.2f ISK to %u for donation from %u",
-            client->GetName(),
+            player->GetName(),
             amount,
             other->GetCharacterID(),
-            client->GetCharacterID());
-        client->SendErrorMsg("Failed to transfer money to your destination.");
+            player->GetCharacterID());
+        player->SendErrorMsg("Failed to transfer money to your destination.");
 
         //try to refund the money..
-        client->AddBalance(amount);
+        player->AddBalance(amount);
 
         return NULL;
     }
 
     //record the transactions in the wallet.
     //first on the send side.
-    if(!m_db.GiveCash(
-        client->GetCharacterID(),
+    if(!account_db.GiveCash(m_db,
+        player->GetCharacterID(),
         refTypeID,
-        client->GetCharacterID(),
+        player->GetCharacterID(),
         other->GetCharacterID(),
         "unknown",
-        client->GetAccountID(),
+        player->GetAccountID(),
         accountCash,
         -amount,
-        client->GetBalance(),
+        player->GetBalance(),
         reason
         )
     ) {
@@ -322,11 +323,11 @@ PyTuple * AccountService::GiveCashToChar(Player * const client, Player * const o
     }
 
     //then on the receive side.
-    if(!m_db.GiveCash(
+    if(!account_db.GiveCash(m_db,
         other->GetCharacterID(),
         refTypeID,
         other->GetCharacterID(),
-        client->GetCharacterID(),
+        player->GetCharacterID(),
         "unknown",
         other->GetAccountID(),
         accountCash,
@@ -342,8 +343,8 @@ PyTuple * AccountService::GiveCashToChar(Player * const client, Player * const o
 
     //send back the new balance
     PyTuple *ans= new PyTuple(2);
-    ans->items[0]=new PyFloat(client->GetBalance());//new balance
-    ans->items[1]=new PyFloat(client->GetBalance());//new balance, not an error need to send it 2 times
+    ans->items[0]=new PyFloat(player->GetBalance());//new balance
+    ans->items[1]=new PyFloat(player->GetBalance());//new balance, not an error need to send it 2 times
 
     return ans;
 }
@@ -368,8 +369,8 @@ PyResult AccountService::Handle_GetJournal(PyCallArgs &call) {
         return NULL;
     }
 
-    return m_db.GetJournal(
-        ( ca ? call.client->GetCorporationID() : call.client->GetCharacterID() ),
+    return account_db.GetJournal(m_db,
+        ( ca ? call.player->GetCorporationID() : call.player->GetCharacterID() ),
         args.refTypeID,
         args.accountKey,
         args.fromDate
@@ -386,44 +387,44 @@ PyResult AccountService::Handle_GiveCashFromCorpAccount(PyCallArgs &call) {
     if(args.amount == 0)
         return NULL;
 
-    if(args.amount < 0 || args.amount > m_db.GetCorpBalance(call.client->GetCorporationID())) {
-        _log(CLIENT__ERROR, "%s: Invalid amount in GiveCashFromCorpAccount(): %.2f", call.client->GetName(), args.amount);
-        call.client->SendErrorMsg("Invalid amount '%.2f'", args.amount);
+    if(args.amount < 0 || args.amount > account_db.GetCorpBalance(m_db, call.player->GetCorporationID())) {
+        _log(CLIENT__ERROR, "%s: Invalid amount in GiveCashFromCorpAccount(): %.2f", call.player->GetName(), args.amount);
+        call.player->SendErrorMsg("Invalid amount '%.2f'", args.amount);
         return NULL;
     }
 
-    SystemManager *system = call.client->System();
+    SystemManager *system = call.player->System();
     if(system == NULL) {
-        codelog(CLIENT__ERROR, "%s: bad system", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: bad system", call.player->GetName());
         return NULL;
     }
 
     //NOTE: this will need work once we reorganize the entity list...
     Player *other = m_manager->entity_list.FindCharacter(args.destination);
     if(other == NULL) {
-        _log(CLIENT__ERROR, "%s: Failed to find character %u", call.client->GetName(), args.destination);
-        call.client->SendErrorMsg("Unable to find the target");
+        _log(CLIENT__ERROR, "%s: Failed to find character %u", call.player->GetName(), args.destination);
+        call.player->SendErrorMsg("Unable to find the target");
         return NULL;
     }
 
 
-    return WithdrawCashToChar(call.client, other, args.amount, args.reason.c_str(), RefType_corpAccountWithdrawal);
+    return WithdrawCashToChar(call.player, other, args.amount, args.reason.c_str(), RefType_corpAccountWithdrawal);
 }
 
-PyTuple * AccountService::WithdrawCashToChar(Player * const client, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
+PyTuple * AccountService::WithdrawCashToChar(Player * const player, Player * const other, double amount, const char *reason, JournalRefType refTypeID) {
     // remove money from the corp
-    uint32 corpID = client->GetCorporationID();
-    if (!m_db.AddBalanceToCorp(corpID, double(-amount))) {
+    uint32 corpID = player->GetCorporationID();
+    if (!account_db.AddBalanceToCorp(m_db, corpID, double(-amount))) {
         _log(CLIENT__ERROR, "%s: Failed to remove %.2f ISK from %u for withdrawal to %u",
-            client->GetName(),
+            player->GetName(),
             amount,
             corpID,
             other->GetCharacterID() );
-        client->SendErrorMsg("Failed to transfer money from your account.");
+        player->SendErrorMsg("Failed to transfer money from your account.");
         return NULL;
     }
 
-    double ncb = m_db.GetCorpBalance(corpID);
+    double ncb = account_db.GetCorpBalance(m_db, corpID);
 
     // Send notification about the cash change
     OnAccountChange oac;
@@ -438,14 +439,14 @@ PyTuple * AccountService::WithdrawCashToChar(Player * const client, Player * con
 
     if(!other->AddBalance(amount)) {
         _log(CLIENT__ERROR, "%s: Failed to add %.2f ISK to %u for donation from %u",
-            client->GetName(),
+            player->GetName(),
             amount,
             corpID,
-            client->GetCharacterID());
-        client->SendErrorMsg("Failed to transfer money to your destination.");
+            player->GetCharacterID());
+        player->SendErrorMsg("Failed to transfer money to your destination.");
 
         //try to refund the money..
-        m_db.AddBalanceToCorp(corpID, double(amount));
+        account_db.AddBalanceToCorp(m_db, corpID, double(amount));
         // if we're here, we have a more serious problem than
         // corp's balance not being displayed properly, so i won't bother with it
 
@@ -455,8 +456,8 @@ PyTuple * AccountService::WithdrawCashToChar(Player * const client, Player * con
     //record the transactions in the wallet.
     //first on the send side.
     char argID[15];
-    snprintf(argID, 14, "%u", client->GetCharacterID());
-    if(!m_db.GiveCash(
+    snprintf(argID, 14, "%u", player->GetCharacterID());
+    if(!account_db.GiveCash(m_db,
         corpID,
         refTypeID,
         corpID,
@@ -474,7 +475,7 @@ PyTuple * AccountService::WithdrawCashToChar(Player * const client, Player * con
     }
 
     //then on the receive side.
-    if(!m_db.GiveCash(
+    if(!account_db.GiveCash(m_db,
         other->GetCharacterID(),
         refTypeID,
         corpID,

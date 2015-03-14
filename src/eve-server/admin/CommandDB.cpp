@@ -27,10 +27,10 @@
 
 #include "admin/CommandDB.h"
 
-bool CommandDB::ItemSearch(const char *query, std::map<uint32, std::string> &into) {
+bool CommandDB::ItemSearch(DBcore *db, const char *query, std::map<uint32, std::string> &into) {
 
     std::string escaped;
-    sDatabase.DoEscapeString(escaped, query);
+    db->DoEscapeString(escaped, query);
 
     DBQueryResult result;
     DBResultRow row;
@@ -39,7 +39,7 @@ bool CommandDB::ItemSearch(const char *query, std::map<uint32, std::string> &int
 
     //we need to query out the primary message here... not sure how to properly
     //grab the "main message" though... the text/plain clause is pretty hackish.
-    if (!sDatabase.RunQuery(result,
+    if (!db->RunQuery(result,
         " SELECT typeID,typeName"
         " FROM invTypes"
         " WHERE"
@@ -57,13 +57,13 @@ bool CommandDB::ItemSearch(const char *query, std::map<uint32, std::string> &int
     return true;
 }
 
-bool CommandDB::ItemSearch(uint32 typeID, uint32 &actualTypeID,
+bool CommandDB::ItemSearch(DBcore *db, uint32 typeID, uint32 &actualTypeID,
     std::string &actualTypeName, uint32 &actualGroupID, uint32 &actualCategoryID, double &actualRadius)
 {
     DBQueryResult result;
     DBResultRow row;
 
-    if (!sDatabase.RunQuery(result,
+    if (!db->RunQuery(result,
         "SELECT  "
         " invTypes.typeID,"
         " invTypes.typeName,"
@@ -97,11 +97,11 @@ bool CommandDB::ItemSearch(uint32 typeID, uint32 &actualTypeID,
     return true;
 }
 
-bool CommandDB::GetRoidDist(const char * sec, std::map<double, uint32> &roids) {
+bool CommandDB::GetRoidDist(DBcore *db, const char * sec, std::map<double, uint32> &roids) {
     DBQueryResult res;
     DBResultRow row;
 
-    if (!sDatabase.RunQuery(res,
+    if (!db->RunQuery(res,
         " SELECT roidID, percent FROM roidDistribution WHERE systemSec = '%s' ", sec))
     {
         codelog(SERVICE__ERROR, "Error in query: %s", res.error.c_str());
@@ -117,14 +117,14 @@ bool CommandDB::GetRoidDist(const char * sec, std::map<double, uint32> &roids) {
     return !roids.empty();
 }
 
-int CommandDB::GetAttributeID(const char *attributeName) {
+int CommandDB::GetAttributeID(DBcore *db, const char *attributeName) {
 
     DBQueryResult res;
     DBResultRow row;
     std::string escape;
-    sDatabase.DoEscapeString(escape, attributeName);
+    db->DoEscapeString(escape, attributeName);
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         " SELECT "
         " attributeID "
         " FROM dgmAttributeTypes "
@@ -144,11 +144,11 @@ int CommandDB::GetAttributeID(const char *attributeName) {
 
 }
 
-int CommandDB::GetAccountID(std::string name) {
+int CommandDB::GetAccountID(DBcore *db, std::string name) {
 
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         " SELECT "
         " AccountID "
         " FROM character_ "
@@ -170,14 +170,14 @@ int CommandDB::GetAccountID(std::string name) {
 
 }
 
-bool CommandDB::FullSkillList(std::vector<uint32> &skillList) {
+bool CommandDB::FullSkillList(DBcore *db, std::vector<uint32> &skillList) {
 
     DBQueryResult result;
     DBResultRow row;
 
     skillList.clear();
 
-    if (!sDatabase.RunQuery(result,
+    if (!db->RunQuery(result,
         " SELECT * FROM `invTypes` WHERE "
 		" ((`groupID` IN (SELECT groupID FROM invGroups WHERE categoryID = 16)) AND (published = 1)) "
         ))

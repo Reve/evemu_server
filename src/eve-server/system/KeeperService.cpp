@@ -93,11 +93,11 @@ PyResult KeeperService::Handle_ActivateAccelerationGate(PyCallArgs &call) {
 
     if( !args.Decode( &call.tuple ) )
     {
-		sLog.Error( "KeeperService::Handle_ActivateAccelerationGate(): failed to decode arguments for character '%s' !", call.client->GetName() );
+		sLog.Error( "KeeperService::Handle_ActivateAccelerationGate(): failed to decode arguments for character '%s' !", call.player->GetName() );
         return NULL;
     }
 
-	Player * who = call.client;
+	Player * who = call.player;
 
 	who->Destiny()->SendSpecialEffect10(args.arg, who->GetShip(), 0, "effects.WarpGateEffect", 0, 1, 0);
 	double distance = 10 * ONE_AU_IN_METERS;

@@ -158,17 +158,17 @@ PyResult InvBrokerBound::Handle_GetContainerContents(PyCallArgs &call)
 PyResult InvBrokerBound::Handle_GetInventoryFromId(PyCallArgs &call) {
     Call_TwoIntegerArgs args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return (NULL);
     }
     //bool passive = (args.arg2 != 0);  //no idea what this is for.
 
-    m_manager->item_factory.SetUsingClient( call.client );
+    m_manager->item_factory.SetUsingClient( call.player );
     // TODO: this line is insufficient for some object types, like containers in space, so expand it
     // by having a switch that acts differently based on either categoryID or groupID or both:
     Inventory *inventory = m_manager->item_factory.GetInventory( args.arg1 );
     if(inventory == NULL) {
-        codelog(SERVICE__ERROR, "%s: Unable to load inventory %u", call.client->GetName(), args.arg1);
+        codelog(SERVICE__ERROR, "%s: Unable to load inventory %u", call.player->GetName(), args.arg1);
         return (NULL);
     }
 
@@ -219,14 +219,14 @@ PyResult InvBrokerBound::Handle_GetInventory(PyCallArgs &call) {
             return NULL;
     }
 
-    m_manager->item_factory.SetUsingClient( call.client );
+    m_manager->item_factory.SetUsingClient( call.player );
     Inventory *inventory = m_manager->item_factory.GetInventory( m_entityID );
     if(inventory == NULL) {
-        codelog(SERVICE__ERROR, "%s: Unable to load item %u", call.client->GetName(), m_entityID);
+        codelog(SERVICE__ERROR, "%s: Unable to load item %u", call.player->GetName(), m_entityID);
         return (NULL);
     }
 
-    _log(SERVICE__MESSAGE, "Binding inventory object for %s for inventory %u with flag %u", call.client->GetName(), m_entityID, flag);
+    _log(SERVICE__MESSAGE, "Binding inventory object for %s for inventory %u with flag %u", call.player->GetName(), m_entityID, flag);
 
     //we just bind up a new inventory object and give it back to them.
     InventoryBound *ib = new InventoryBound(m_manager, *inventory, flag);
@@ -245,15 +245,15 @@ PyResult InvBrokerBound::Handle_SetLabel(PyCallArgs &call) {
         return NULL;
     }
 
-    m_manager->item_factory.SetUsingClient( call.client );
+    m_manager->item_factory.SetUsingClient( call.player );
     InventoryItemRef item = m_manager->item_factory.GetItem( args.itemID );
     if( !item ) {
-        codelog(SERVICE__ERROR, "%s: Unable to load item %u", call.client->GetName(), args.itemID);
+        codelog(SERVICE__ERROR, "%s: Unable to load item %u", call.player->GetName(), args.itemID);
         return (NULL);
     }
 
-    if(item->ownerID() != call.client->GetCharacterID()) {
-        _log(SERVICE__ERROR, "Character %u tried to rename item %u of character %u.", call.client->GetCharacterID(), item->itemID(), item->ownerID());
+    if(item->ownerID() != call.player->GetCharacterID()) {
+        _log(SERVICE__ERROR, "Character %u tried to rename item %u of character %u.", call.player->GetCharacterID(), item->itemID(), item->ownerID());
         return NULL;
     }
 
@@ -264,7 +264,7 @@ PyResult InvBrokerBound::Handle_SetLabel(PyCallArgs &call) {
     // so until we can get the right string argument for other kinds of session updates,
     // we need to block this call so our characters don't "board" non-ship objects:
     if( item->categoryID() == EVEDB::invCategories::Ship )
-        call.client->UpdateSession("shipid", item->itemID() );
+        call.player->UpdateSession("shipid", item->itemID() );
 
     // Release the item factory now that the ItemFactory is finished being used:
     m_manager->item_factory.UnsetUsingClient();
@@ -282,17 +282,17 @@ PyResult InvBrokerBound::Handle_TrashItems(PyCallArgs &call) {
     std::vector<int32>::const_iterator cur, end;
     cur = args.items.begin();
     end = args.items.end();
-    m_manager->item_factory.SetUsingClient( call.client );
+    m_manager->item_factory.SetUsingClient( call.player );
     for(; cur != end; cur++) {
         InventoryItemRef item = m_manager->item_factory.GetItem( *cur );
         if( !item ) {
-            codelog(SERVICE__ERROR, "%s: Unable to load item %u to delete it. Skipping.", call.client->GetName(), *cur);
+            codelog(SERVICE__ERROR, "%s: Unable to load item %u to delete it. Skipping.", call.player->GetName(), *cur);
         }
-        else if( call.client->GetCharacterID() != item->ownerID() ) {
-            codelog(SERVICE__ERROR, "%s: Tried to trash item %u which is not yours. Skipping.", call.client->GetName(), *cur);
+        else if( call.player->GetCharacterID() != item->ownerID() ) {
+            codelog(SERVICE__ERROR, "%s: Tried to trash item %u which is not yours. Skipping.", call.player->GetName(), *cur);
         }
         else if( item->locationID() != (uint32)args.locationID ) {
-            codelog(SERVICE__ERROR, "%s: Item %u is not in location %u. Skipping.", call.client->GetName(), *cur, args.locationID);
+            codelog(SERVICE__ERROR, "%s: Item %u is not in location %u. Skipping.", call.player->GetName(), *cur, args.locationID);
         }
         else
             item->Delete();

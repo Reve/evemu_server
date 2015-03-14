@@ -74,12 +74,12 @@ PyResult BillMgrService::Handle_GetBillTypes( PyCallArgs& call )
 
 PyResult BillMgrService::Handle_GetCorporationBills(PyCallArgs &call) {
     // No incoming params
-    uint32 corpID = call.client->GetCorporationID();
+    uint32 corpID = call.player->GetCorporationID();
 
     return m_db.GetCorporationBills(corpID, true);
 }
 PyResult BillMgrService::Handle_GetCorporationBillsReceivable(PyCallArgs &call) {
-    uint32 corpID = call.client->GetCorporationID();
+    uint32 corpID = call.player->GetCorporationID();
 
     return m_db.GetCorporationBills(corpID, false);
 }

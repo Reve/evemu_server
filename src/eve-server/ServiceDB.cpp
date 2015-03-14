@@ -34,11 +34,11 @@
  *       role = sConfig.account.autoAccountRole;
  */
 
-PyObject *ServiceDB::GetSolRow(uint32 systemID) const
+PyObject *ServiceDB::GetSolRow(DBcore *db, uint32 systemID) const
 {
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         //not sure if this is gunna be valid all the time...
         "SELECT "
         "    itemID,entity.typeID,ownerID,locationID,flag,contraband,singleton,quantity,"
@@ -65,10 +65,10 @@ PyObject *ServiceDB::GetSolRow(uint32 systemID) const
 }
 
 //this function is temporary, I dont plan to keep this crap in the DB.
-PyObject *ServiceDB::GetSolDroneState(uint32 systemID) const {
+PyObject *ServiceDB::GetSolDroneState(DBcore *db, uint32 systemID) const {
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         //not sure if this is gunna be valid all the time...
         "SELECT "
         "    droneID, solarSystemID, ownerID, controllerID,"
@@ -85,7 +85,7 @@ PyObject *ServiceDB::GetSolDroneState(uint32 systemID) const {
     return DBResultToRowset(res);
 }
 
-bool ServiceDB::GetSystemInfo(uint32 systemID, uint32 *constellationID, uint32 *regionID, std::string *name, std::string *securityClass) {
+bool ServiceDB::GetSystemInfo(DBcore *db, uint32 systemID, uint32 *constellationID, uint32 *regionID, std::string *name, std::string *securityClass) {
     if(       constellationID == NULL
         && regionID == NULL
         && name == NULL
@@ -94,7 +94,7 @@ bool ServiceDB::GetSystemInfo(uint32 systemID, uint32 *constellationID, uint32 *
         return true;
 
     DBQueryResult res;
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         "SELECT"
         " constellationID,"
         " regionID,"
@@ -126,7 +126,7 @@ bool ServiceDB::GetSystemInfo(uint32 systemID, uint32 *constellationID, uint32 *
     return true;
 }
 
-bool ServiceDB::GetStaticItemInfo(uint32 itemID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position) {
+bool ServiceDB::GetStaticItemInfo(DBcore *db, uint32 itemID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position) {
     if(       systemID == NULL
         && constellationID == NULL
         && regionID == NULL
@@ -135,7 +135,7 @@ bool ServiceDB::GetStaticItemInfo(uint32 itemID, uint32 *systemID, uint32 *const
         return true;
 
     DBQueryResult res;
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         "SELECT"
         " solarSystemID,"
         " constellationID,"
@@ -171,7 +171,7 @@ bool ServiceDB::GetStaticItemInfo(uint32 itemID, uint32 *systemID, uint32 *const
     return true;
 }
 
-bool ServiceDB::GetStationInfo(uint32 stationID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position, GPoint *dockPosition, GVector *dockOrientation) {
+bool ServiceDB::GetStationInfo(DBcore *db, uint32 stationID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position, GPoint *dockPosition, GVector *dockOrientation) {
     if(       systemID == NULL
         && constellationID == NULL
         && regionID == NULL
@@ -182,7 +182,7 @@ bool ServiceDB::GetStationInfo(uint32 stationID, uint32 *systemID, uint32 *const
         return true;
 
     DBQueryResult res;
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         "SELECT"
         " solarSystemID,"
         " constellationID,"
@@ -236,10 +236,10 @@ bool ServiceDB::GetStationInfo(uint32 stationID, uint32 *systemID, uint32 *const
     return true;
 }
 
-uint32 ServiceDB::GetDestinationStargateID(uint32 fromSystem, uint32 toSystem) {
+uint32 ServiceDB::GetDestinationStargateID(DBcore *db, uint32 fromSystem, uint32 toSystem) {
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         " SELECT "
         "    fromStargate.solarSystemID AS fromSystem,"
         "    fromStargate.itemID AS fromGate,"
@@ -268,13 +268,13 @@ uint32 ServiceDB::GetDestinationStargateID(uint32 fromSystem, uint32 toSystem) {
     return row.GetUInt(2);
 }
 
-bool ServiceDB::GetConstant(const char *name, uint32 &into) {
+bool ServiceDB::GetConstant(DBcore *db, const char *name, uint32 &into) {
     DBQueryResult res;
 
     std::string escaped;
-    sDatabase.DoEscapeString(escaped, name);
+    db->DoEscapeString(escaped, name);
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
     "SELECT"
     "    constantValue"
     " FROM eveConstants"
@@ -297,12 +297,12 @@ bool ServiceDB::GetConstant(const char *name, uint32 &into) {
     return true;
 }
 
-void ServiceDB::ProcessStringChange(const char * key, const std::string & oldValue, const std::string & newValue, PyDict * notif, std::vector<std::string> & dbQ) {
+void ServiceDB::ProcessStringChange(DBcore *db, const char * key, const std::string & oldValue, const std::string & newValue, PyDict * notif, std::vector<std::string> & dbQ) {
     if (oldValue != newValue) {
         std::string newEscValue;
         std::string qValue(key);
 
-        sDatabase.DoEscapeString(newEscValue, newValue);
+        db->DoEscapeString(newEscValue, newValue);
 
         // add to notification
         PyTuple * val = new PyTuple(2);
@@ -352,12 +352,12 @@ void ServiceDB::ProcessIntChange(const char * key, uint32 oldValue, uint32 newVa
 }
 
 //johnsus - characterOnline mod
-void ServiceDB::SetCharacterOnlineStatus(uint32 char_id, bool onoff_status) {
+void ServiceDB::SetCharacterOnlineStatus(DBcore *db, uint32 char_id, bool onoff_status) {
     DBerror err;
 
     _log(CLIENT__TRACE, "ChrStatus: Setting character %u %s.", char_id, onoff_status ? "Online" : "Offline");
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         "UPDATE character_"
         " SET online = %d"
         " WHERE characterID = %u",
@@ -370,7 +370,7 @@ void ServiceDB::SetCharacterOnlineStatus(uint32 char_id, bool onoff_status) {
     {
         _log(CLIENT__TRACE, "SrvStatus: Incrementing ConnectSinceStartup.");
 
-        if(!sDatabase.RunQuery(err, "UPDATE srvStatus SET config_value = config_value + 1 WHERE config_name = 'connectSinceStartup'"))
+        if(!db->RunQuery(err, "UPDATE srvStatus SET config_value = config_value + 1 WHERE config_name = 'connectSinceStartup'"))
         {
             codelog(SERVICE__ERROR, "Error in query: %s", err.c_str());
         }
@@ -378,12 +378,12 @@ void ServiceDB::SetCharacterOnlineStatus(uint32 char_id, bool onoff_status) {
 }
 
 //johnsus - serverStartType mod
-void ServiceDB::SetServerOnlineStatus(bool onoff_status) {
+void ServiceDB::SetServerOnlineStatus(DBcore *db, bool onoff_status) {
     DBerror err;
 
     _log(onoff_status ? SERVER__INIT : SERVER__SHUTDOWN, "SrvStatus: Server is %s, setting serverStartTime.", onoff_status ? "coming Online" : "going Offline");
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         "REPLACE INTO srvStatus (config_name, config_value)"
         " VALUES ('%s', %s)",
         "serverStartTime",
@@ -394,7 +394,7 @@ void ServiceDB::SetServerOnlineStatus(bool onoff_status) {
 
     _log(SERVER__INIT, "SrvStatus: Resetting ConnectSinceStartup.");
 
-    if(!sDatabase.RunQuery(err, "REPLACE INTO srvStatus (config_name, config_value)"
+    if(!db->RunQuery(err, "REPLACE INTO srvStatus (config_name, config_value)"
         " VALUES ('%s', '0')",
         "connectSinceStartup"))
     {
@@ -403,7 +403,7 @@ void ServiceDB::SetServerOnlineStatus(bool onoff_status) {
 
     _log(CLIENT__TRACE, "ChrStatus: Setting all characters and accounts offline.");
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         "UPDATE character_, account"
         " SET character_.online = 0,"
         "     account.online = 0"))
@@ -412,12 +412,12 @@ void ServiceDB::SetServerOnlineStatus(bool onoff_status) {
         }
 }
 
-void ServiceDB::SetAccountOnlineStatus(uint32 accountID, bool onoff_status) {
+void ServiceDB::SetAccountOnlineStatus(DBcore *db, uint32 accountID, bool onoff_status) {
     DBerror err;
 
     _log(CLIENT__TRACE, "AccStatus: Setting account %u %s.", accountID, onoff_status ? "Online" : "Offline");
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         "UPDATE account "
         " SET account.online = %d "
         " WHERE accountID = %u ",
@@ -427,12 +427,12 @@ void ServiceDB::SetAccountOnlineStatus(uint32 accountID, bool onoff_status) {
     }
 }
 
-void ServiceDB::SetAccountBanStatus(uint32 accountID, bool onoff_status) {
+void ServiceDB::SetAccountBanStatus(DBcore *db, uint32 accountID, bool onoff_status) {
     DBerror err;
 
     _log(CLIENT__TRACE, "AccStatus: %s account %u.", onoff_status ? "Banned" : "Removed ban on", accountID );
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         " UPDATE account "
         " SET account.banned = %d "
         " WHERE accountID = %u ",

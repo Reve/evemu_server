@@ -83,4 +83,6 @@ Client* ClientList::findAccount(int id)
 		if((*cur)->id == id)
 			return *cur;
 	}
+
+	return NULL;
 }

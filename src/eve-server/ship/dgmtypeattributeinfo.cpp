@@ -27,12 +27,13 @@
 
 #include "ship/dgmtypeattributeinfo.h"
 
-dgmtypeattributemgr::dgmtypeattributemgr()
+dgmtypeattributemgr::dgmtypeattributemgr(DBcore &db)
+	:m_db(db)
 {
     // load shit from db
     DBQueryResult res;
 
-    if( !sDatabase.RunQuery( res,
+    if( !m_db.RunQuery( res,
         "SELECT * FROM dgmTypeAttributes ORDER BY typeID" ) )
     {
         sLog.Error("DgmTypeAttrMgr", "Error in db load query: %s", res.error.c_str());

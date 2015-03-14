@@ -33,14 +33,15 @@
 class TutorialService : public PyService
 {
 public:
-    TutorialService(PyServiceMgr *mgr);
+    TutorialService(PyServiceMgr *mgr, DBcore *db);
     virtual ~TutorialService();
 
 protected:
     class Dispatcher;
     Dispatcher *const m_dispatch;
+	DBcore *const m_db;
 
-    TutorialDB m_db;
+    TutorialDB tutorial_db;
 
     PyCallable_DECL_CALL(GetTutorialInfo)
     PyCallable_DECL_CALL(GetTutorials)

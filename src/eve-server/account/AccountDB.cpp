@@ -27,10 +27,10 @@
 
 #include "account/AccountDB.h"
 
-PyObject *AccountDB::GetEntryTypes() {
+PyObject *AccountDB::GetEntryTypes(DBcore *db) {
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res, "SELECT refTypeID AS entryTypeID,refTypeText AS entryTypeName,description FROM market_refTypes"))
+    if(!db->RunQuery(res, "SELECT refTypeID AS entryTypeID,refTypeText AS entryTypeName,description FROM market_refTypes"))
     {
         sLog.Error("Account DB", "Error in query: %s", res.error.c_str());
         return NULL;
@@ -39,10 +39,10 @@ PyObject *AccountDB::GetEntryTypes() {
     return DBResultToRowset(res);
 }
 
-PyObject *AccountDB::GetKeyMap() {
+PyObject *AccountDB::GetKeyMap(DBcore *db) {
     DBQueryResult res;
 
-    if(!sDatabase.RunQuery(res, "SELECT accountKey AS keyID,accountType AS keyType,accountName AS keyName,description FROM market_keyMap"))
+    if(!db->RunQuery(res, "SELECT accountKey AS keyID,accountType AS keyType,accountName AS keyName,description FROM market_keyMap"))
     {
         sLog.Error("Account DB", "Error in query: %s", res.error.c_str());
         return NULL;
@@ -51,7 +51,7 @@ PyObject *AccountDB::GetKeyMap() {
     return DBResultToRowset(res);
 }
 
-PyObject *AccountDB::GetJournal(uint32 charID, uint32 refTypeID, uint32 accountKey, uint64 transDate) {
+PyObject *AccountDB::GetJournal(DBcore *db, uint32 charID, uint32 refTypeID, uint32 accountKey, uint64 transDate) {
 //'refID', 'transDate', 'refTypeID','ownerID1', 'ownerID2', 'argID1', 'accountID', 'amount', 'balance', 'reason'
 
     DBQueryResult res;
@@ -60,7 +60,7 @@ PyObject *AccountDB::GetJournal(uint32 charID, uint32 refTypeID, uint32 accountK
     dT = transDate - Win32Time_Day;
     // 1 sec = 10.000.000 wow...
 
-    if(!sDatabase.RunQuery(res,
+    if(!db->RunQuery(res,
         "SELECT refID AS transactionID,transDate AS transactionDate,0 AS referenceID, refTypeID AS entryTypeID,ownerID1,ownerID2,argID1, accountKey,amount,balance,reason AS description "
         "FROM market_journal "
         "WHERE (transDate >= %" PRIu64 " AND transDate <= %" PRIu64 ") "
@@ -79,7 +79,7 @@ PyObject *AccountDB::GetJournal(uint32 charID, uint32 refTypeID, uint32 accountK
 // temporarily moved into ServiceDB because other services needed access to
 // it, eventually something better will need to be done (as the account system
 // grows up)
-bool ServiceDB::GiveCash( uint32 characterID, JournalRefType refTypeID, uint32 ownerFromID, uint32 ownerToID, const char *argID1,
+bool ServiceDB::GiveCash(DBcore *db, uint32 characterID, JournalRefType refTypeID, uint32 ownerFromID, uint32 ownerToID, const char *argID1,
     uint32 accountID, EVEAccountKeys accountKey, double amount, double balance, const char *reason )
 {
 //the only unknown it is argID1 , what is it ?
@@ -87,11 +87,11 @@ bool ServiceDB::GiveCash( uint32 characterID, JournalRefType refTypeID, uint32 o
     DBerror err;
 
     std::string eReason;
-    sDatabase.DoEscapeString(eReason, reason);
+    db->DoEscapeString(eReason, reason);
     std::string eArg1;
-    sDatabase.DoEscapeString(eArg1, argID1);
+    db->DoEscapeString(eArg1, argID1);
 
-    if(!sDatabase.RunQuery(err,
+    if(!db->RunQuery(err,
         "INSERT INTO market_journal(characterID,refID,transDate,refTypeID,ownerID1,ownerID2,argID1,accountID,accountKey,amount,balance,reason) "
         "VALUES (%u,NULL,%" PRIu64 ",%u,%u,%u,\"%s\",%u,%u,%.2f,%.2f,\"%s\")",
         characterID, Win32TimeNow(), refTypeID, ownerFromID, ownerToID, eArg1.c_str(), accountID, accountKey, amount, balance, eReason.c_str()))
@@ -103,10 +103,10 @@ bool ServiceDB::GiveCash( uint32 characterID, JournalRefType refTypeID, uint32 o
     return true;
 }
 
-bool AccountDB::CheckIfCorporation(uint32 corpID) {
+bool AccountDB::CheckIfCorporation(DBcore *db, uint32 corpID) {
     DBQueryResult res;
     DBResultRow row;
-    if (!sDatabase.RunQuery(res, "SELECT corporationID FROM corporation WHERE corporationID = %u ", corpID))
+    if (!db->RunQuery(res, "SELECT corporationID FROM corporation WHERE corporationID = %u ", corpID))
     {
         sLog.Error("Service DB", "Error in query: %s", res.error.c_str());
         return false;
@@ -120,9 +120,9 @@ bool AccountDB::CheckIfCorporation(uint32 corpID) {
     return true;
 }
 
-bool ServiceDB::AddBalanceToCorp(uint32 corpID, double amount) {
+bool ServiceDB::AddBalanceToCorp(DBcore *db,uint32 corpID, double amount) {
     DBerror err;
-    if (!sDatabase.RunQuery(err, "UPDATE corporation SET balance = balance + (%lf) WHERE corporationID = %u ", amount, corpID))
+    if (!db->RunQuery(err, "UPDATE corporation SET balance = balance + (%lf) WHERE corporationID = %u ", amount, corpID))
     {
         sLog.Error("Service DB", "Error in query: %s", err.c_str());
         return false;
@@ -130,10 +130,10 @@ bool ServiceDB::AddBalanceToCorp(uint32 corpID, double amount) {
     return true;
 }
 
-double ServiceDB::GetCorpBalance(uint32 corpID) {
+double ServiceDB::GetCorpBalance(DBcore *db, uint32 corpID) {
     DBQueryResult res;
     DBResultRow row;
-    if (!sDatabase.RunQuery(res, "SELECT balance FROM corporation WHERE corporationID = %u ", corpID))
+    if (!db->RunQuery(res, "SELECT balance FROM corporation WHERE corporationID = %u ", corpID))
     {
         sLog.Error("Service DB", "Error in query: %s", res.error.c_str());
         return 0.0;

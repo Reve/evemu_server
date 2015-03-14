@@ -98,7 +98,7 @@ PyResult TradeService::Handle_InitiateTrade(PyCallArgs &call){
     Call_SingleIntegerArg args;
 
     if(!args.Decode(&call.tuple)) {
-        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName());
         return NULL;
     }
 
@@ -108,7 +108,7 @@ PyResult TradeService::Handle_InitiateTrade(PyCallArgs &call){
 
     rsp.nodeID = call.client->services().GetNodeID();
     rsp.stationID = target->GetStationID();
-    rsp.ownerID = call.client->GetCharacterID();
+    rsp.ownerID = call.player->GetCharacterID();
     rsp.targetID = target->GetCharacterID();
     rsp.moneyToGive = 0;
     rsp.moneyToReceive = 0;

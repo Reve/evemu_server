@@ -50,7 +50,7 @@ PyResult CorpBookmarkMgrService::Handle_GetBookmarks(PyCallArgs& call)
 {
     ObjectCachedMethodID method_id(GetName(), "GetBookmarks");
     if(!m_manager->cache_service->IsCacheLoaded(method_id)) {
-        PyDict *res = m_db.GetBookmarks(call.client->GetCorporationID());
+        PyDict *res = m_db.GetBookmarks(call.player->GetCorporationID());
         if(res == NULL)
             return NULL;
 

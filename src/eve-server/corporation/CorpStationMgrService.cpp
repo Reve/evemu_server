@@ -207,7 +207,7 @@ PyResult CorpStationMgrIMBound::Handle_GetPotentialHomeStations(PyCallArgs &call
     //returns a rowset: stationID, typeID
 
     _log(CLIENT__ERROR, "Hacking GetPotentialHomeStations");
-    result = m_db.ListCorpStations(call.client->GetCorporationID());
+    result = m_db.ListCorpStations(call.player->GetCorporationID());
 
     return result;
 }
@@ -236,13 +236,13 @@ PyResult CorpStationMgrIMBound::Handle_SetCloneTypeID(PyCallArgs &call) {
     int cost = m_db.GetCloneTypeCostByID(arg.CloneTypeID);
 
     //Check if player has enough money
-    if(call.client->GetBalance() > cost) {
+    if(call.player->GetBalance() > cost) {
         //subtract amount
-        call.client->AddBalance(-cost);
+        call.player->AddBalance(-cost);
     }
 
     //update type of clone
-    m_db.ChangeCloneType(call.client->GetCharacterID(),arg.CloneTypeID);
+    m_db.ChangeCloneType(call.player->GetCharacterID(),arg.CloneTypeID);
 
 
     //sLog.Debug( "CorpStationMgrIMBound", "Called SetCloneTypeID stub." );
@@ -252,7 +252,7 @@ PyResult CorpStationMgrIMBound::Handle_SetCloneTypeID(PyCallArgs &call) {
 
 PyResult CorpStationMgrIMBound::Handle_GetQuoteForRentingAnOffice(PyCallArgs &call) {
     // No incoming params...
-    uint32 stationID = call.client->GetStationID();
+    uint32 stationID = call.player->GetStationID();
 
     // Unless I produce an invalid ISK value (probably a NAN), this won't fail,
     // the dialog box will be displayed... have to make sure this doesn't fail
@@ -266,24 +266,24 @@ PyResult CorpStationMgrIMBound::Handle_RentOffice(PyCallArgs &call) {
         return NULL;
     }
 
-    uint32 location = call.client->GetLocationID();
+    uint32 location = call.player->GetLocationID();
 
     // check if the corp has enough money
-    double corpBalance = m_db.GetCorpBalance(call.client->GetCorporationID());
+    double corpBalance = m_db.GetCorpBalance(call.player->GetCorporationID());
     if (corpBalance < arg.arg) {
-        _log(SERVICE__ERROR, "%s: Corp doesn't have enough money to rent an office.", call.client->GetName());
+        _log(SERVICE__ERROR, "%s: Corp doesn't have enough money to rent an office.", call.player->GetName());
         return (new PyInt(0));
     }
 
 
     // We should also check if the station has a free office atm...
-    OfficeInfo oInfo(call.client->GetCorporationID(), call.client->GetStationID());
+    OfficeInfo oInfo(call.player->GetCorporationID(), call.player->GetStationID());
     oInfo.officeID = m_db.ReserveOffice(oInfo);
     // should we also put this into the entity table?
 
 
     if (!oInfo.officeID) {
-        codelog(SERVICE__ERROR, "%s: Error at renting a new office", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Error at renting a new office", call.player->GetName());
         return new PyInt(0);
     }
     // Now we have the new office, let's update the officelist... if we have to...
@@ -317,7 +317,7 @@ PyResult CorpStationMgrIMBound::Handle_RentOffice(PyCallArgs &call) {
     m_db.AddBalanceToCorp(oInfo.corporationID, -double(arg.arg));
     corpBalance -= arg.arg;    // This is the new corp money. Do I have to make a casting here?
     // record the transaction
-    m_db.GiveCash(oInfo.corporationID, RefType_officeRentalFee, oInfo.corporationID, oInfo.stationID, "unknown", call.client->GetAccountID(), accountCash, -double(arg.arg), corpBalance, "Renting office for 30 days");
+    m_db.GiveCash(oInfo.corporationID, RefType_officeRentalFee, oInfo.corporationID, oInfo.stationID, "unknown", call.player->GetAccountID(), accountCash, -double(arg.arg), corpBalance, "Renting office for 30 days");
 
     MulticastTarget mct;
     mct.corporations.insert(oInfo.corporationID);
@@ -389,7 +389,7 @@ PyResult CorpStationMgrIMBound::Handle_RentOffice(PyCallArgs &call) {
 
     Notify_OnBillReceived N_obr;
     PyTuple * res5 = N_obr.Encode();
-    call.client->SendNotification("OnBillReceived", "*corpid&corprole", &res5, false);
+    call.player->SendNotification("OnBillReceived", "*corpid&corprole", &res5, false);
     // Why do we create a bill, when the office is already paid? Maybe that's why it's empty...
 
 
@@ -402,7 +402,7 @@ PyResult CorpStationMgrIMBound::Handle_RentOffice(PyCallArgs &call) {
     // TODO: send it to every corp member who's affected by it. corpRoleAccountant, corpRoleJuniorAccountant or equiv
     m_manager->lsc_service->SendMail(
         m_db.GetStationCorporationCEO(oInfo.stationID),
-        call.client->GetCharacterID(),
+        call.player->GetCharacterID(),
         "Bill issued",
         "Bill issued for renting an office");
 

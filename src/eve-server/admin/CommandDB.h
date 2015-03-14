@@ -31,13 +31,13 @@ class CommandDB
 : public ServiceDB
 {
 public:
-    bool ItemSearch(const char *query, std::map<uint32, std::string> &into);
-    bool ItemSearch(uint32 typeID, uint32 &actualTypeID, std::string &actualTypeName,
+    bool ItemSearch(DBcore *db, const char *query, std::map<uint32, std::string> &into);
+    bool ItemSearch(DBcore *db, uint32 typeID, uint32 &actualTypeID, std::string &actualTypeName,
         uint32 &actualGroupID, uint32 &actualCategoryID, double &actualRadius);
-    bool GetRoidDist(const char * sec, std::map<double, uint32> &roids);
-    int GetAttributeID(const char *attributeName);
-    int GetAccountID(std::string name);
-	bool FullSkillList(std::vector<uint32> &skillList);
+    bool GetRoidDist(DBcore *db, const char * sec, std::map<double, uint32> &roids);
+    int GetAttributeID(DBcore *db, const char *attributeName);
+    int GetAccountID(DBcore *db, std::string name);
+	bool FullSkillList(DBcore *db, std::vector<uint32> &skillList);
 };
 
 

@@ -33,14 +33,15 @@
 class AccountService
 : public PyService {
 public:
-    AccountService(PyServiceMgr *mgr);
+    AccountService(PyServiceMgr *mgr, DBcore *db);
     virtual ~AccountService();
 
 protected:
     class Dispatcher;
     Dispatcher *const m_dispatch;
+	DBcore *const m_db;
 
-    AccountDB m_db;
+    AccountDB account_db;
 
     PyCallable_DECL_CALL(GetCashBalance)
     PyCallable_DECL_CALL(GetEntryTypes)

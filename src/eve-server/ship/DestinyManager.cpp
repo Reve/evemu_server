@@ -25,6 +25,7 @@
 
 #include "eve-server.h"
 
+#include "Client.h"
 #include "Player.h"
 #include "PyServiceMgr.h"
 #include "npc/NPC.h"
@@ -1281,6 +1282,7 @@ void DestinyManager::GotoDirection(const GPoint &direction, bool update) {
 PyResult DestinyManager::AttemptDockOperation()
 {
     Player * who = m_self->CastToClient();
+	Client * client = who->GetClient();
     SystemManager * sm = m_self->System();
     uint32 stationID = who->GetDockStationID();
     SystemEntity *station = sm->get(stationID);
@@ -1394,7 +1396,7 @@ PyResult DestinyManager::AttemptDockOperation()
             1
         );
         //spawn rookie
-        InventoryItemRef i = who->services().item_factory.SpawnItem( idata );
+        InventoryItemRef i = client->services().item_factory.SpawnItem( idata );
 
         //move the new rookie ship into the players hanger in station
         if(!i)

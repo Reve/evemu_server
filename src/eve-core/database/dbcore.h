@@ -127,7 +127,6 @@ protected:
 };
 
 class DBcore
-: public Singleton<DBcore>
 {
 public:
     enum eStatus { Closed, Connected, Error };
@@ -179,8 +178,5 @@ private:
     int16   pPort;
     bool    pSSL;
 };
-
-#define sDatabase \
-    ( DBcore::get() )
 
 #endif /* !__DATABASE__DBCORE_H__INCL__ */

@@ -105,7 +105,7 @@ PyResult CharMgrService::Handle_GetPublicInfo(PyCallArgs &call) {
     // or corp id
     Call_SingleIntegerArg args;
     if(!args.Decode(&call.tuple)) {
-        codelog(CLIENT__ERROR, "%s: Failed to decode arguments.", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: Failed to decode arguments.", call.player->GetName());
         return NULL;
     }
 
@@ -121,7 +121,7 @@ PyResult CharMgrService::Handle_GetPublicInfo(PyCallArgs &call) {
 
     PyRep *result = m_db.GetCharPublicInfo(args.arg);
     if(result == NULL) {
-        codelog(CLIENT__ERROR, "%s: Failed to find char %u", call.client->GetName(), args.arg);
+        codelog(CLIENT__ERROR, "%s: Failed to find char %u", call.player->GetName(), args.arg);
         return NULL;
     }
 
@@ -132,13 +132,13 @@ PyResult CharMgrService::Handle_GetPublicInfo3(PyCallArgs &call) {
     //takes a single int arg: char id
     Call_SingleIntegerArg args;
     if(!args.Decode(&call.tuple)) {
-        codelog(CLIENT__ERROR, "%s: Failed to decode arguments.", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: Failed to decode arguments.", call.player->GetName());
         return NULL;
     }
 
     PyRep *result = m_db.GetCharPublicInfo3(args.arg);
     if(result == NULL) {
-        codelog(CLIENT__ERROR, "%s: Failed to find char %u", call.client->GetName(), args.arg);
+        codelog(CLIENT__ERROR, "%s: Failed to find char %u", call.player->GetName(), args.arg);
         return NULL;
     }
 
@@ -162,12 +162,12 @@ PyResult CharMgrService::Handle_GetTopBounties( PyCallArgs& call ) {
 PyResult CharMgrService::Handle_GetCloneTypeID( PyCallArgs& call )
 {
 	uint32 typeID;
-	if( !m_db.GetActiveCloneType(call.client->GetCharacterID(), typeID ) )
+	if( !m_db.GetActiveCloneType(call.player->GetCharacterID(), typeID ) )
 	{
 		// This should not happen, because a clone is created at char creation.
 		// We don't have a clone, so return a basic one. cloneTypeID = 9917 (Clone Grade Delta)
 		typeID = 9917;
-		sLog.Debug( "CharMgrService", "Returning a basic clone for Char %u of type %u", call.client->GetCharacterID(), typeID );
+		sLog.Debug( "CharMgrService", "Returning a basic clone for Char %u of type %u", call.player->GetCharacterID(), typeID );
 	}
     return new PyInt(typeID);
 }
@@ -175,9 +175,9 @@ PyResult CharMgrService::Handle_GetCloneTypeID( PyCallArgs& call )
 PyResult CharMgrService::Handle_GetHomeStation( PyCallArgs& call )
 {
 	uint32 stationID;
-	if( !m_db.GetCharHomeStation(call.client->GetCharacterID(), stationID) )
+	if( !m_db.GetCharHomeStation(call.player->GetCharacterID(), stationID) )
 	{
-		sLog.Debug( "CharMgrService", "Could't get the home station for Char %u", call.client->GetCharacterID() );
+		sLog.Debug( "CharMgrService", "Could't get the home station for Char %u", call.player->GetCharacterID() );
 		return new PyNone;
 	}
     return new PyInt(stationID);
@@ -226,7 +226,7 @@ PyResult CharMgrService::Handle_GetCharacterDescription(PyCallArgs &call)
         return NULL;
     }
 
-    m_manager->item_factory.SetUsingClient(call.client);
+    m_manager->item_factory.SetUsingClient(call.player);
     CharacterRef c = m_manager->item_factory.GetCharacter(args.arg);
     if( !c ) {
         _log(CLIENT__ERROR, "GetCharacterDescription failed to load character %u.", args.arg);
@@ -245,7 +245,7 @@ PyResult CharMgrService::Handle_SetCharacterDescription(PyCallArgs &call)
         return NULL;
     }
 
-    CharacterRef c = call.client->GetChar();
+    CharacterRef c = call.player->GetChar();
     if( !c ) {
         _log(CLIENT__ERROR, "SetCharacterDescription called with no char!");
         return NULL;

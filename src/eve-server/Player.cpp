@@ -40,11 +40,9 @@
 
 static const uint32 PING_INTERVAL_US = 60000;
 
-Player::Player(PyServiceMgr &services, EVETCPConnection** con)
-: DynamicSystemEntity(NULL),
-  EVEClientSession( con ),
+Player::Player(Client* client, PyServiceMgr& services): DynamicSystemEntity(NULL),
+  m_client(client),
   m_services(services),
-  m_pingTimer(PING_INTERVAL_US),
   m_system(NULL),
 //  m_destinyTimer(1000, true), //accurate timing is essential
 //  m_lastDestinyTime(Timer::GetTimeSeconds()),
@@ -58,7 +56,6 @@ Player::Player(PyServiceMgr &services, EVETCPConnection** con)
 //  m_nextDestinyUpdate(46751)
 {
     m_moveTimer.Disable();
-    m_pingTimer.Start();
 
     m_dockStationID = 0;
     m_justUndocked = false;
@@ -66,9 +63,6 @@ Player::Player(PyServiceMgr &services, EVETCPConnection** con)
     m_needToDock = false;
 
     bKennyfied = false;     // by default, we do NOT want chat messages kennyfied, LOL
-
-    // Start handshake
-    Reset();
 }
 
 Player::~Player() {
@@ -104,49 +98,12 @@ Player::~Player() {
         m_services.serviceDB().SetAccountOnlineStatus(GetAccountID(), false);
     }
 
-    m_services.ClearBoundObjects(this);
+    //m_services.ClearBoundObjects(this);
 
     targets.DoDestruction();
 
     PyDecRef( m_destinyEventQueue );
     PyDecRef( m_destinyUpdateQueue );
-}
-
-bool Player::ProcessNet()
-{
-    if( GetState() != TCPConnection::STATE_CONNECTED )
-        return false;
-
-    if(m_pingTimer.Check()) {
-        //_log(CLIENT__TRACE, "%s: Sending ping request.", GetName());
-        _SendPingRequest();
-    }
-
-    PyPacket *p;
-    while((p = PopPacket())) {
-        {
-            _log(CLIENT__IN_ALL, "Received packet:");
-            PyLogDumpVisitor dumper(CLIENT__IN_ALL, CLIENT__IN_ALL);
-            p->Dump(CLIENT__IN_ALL, dumper);
-        }
-
-        try
-        {
-            if( !DispatchPacket( p ) )
-                sLog.Error( "Client", "%s: Failed to dispatch packet of type %s (%d).", GetName(), MACHONETMSG_TYPE_NAMES[ p->type ], (int)p->type );
-        }
-        catch( PyException& e )
-        {
-            _SendException( p->dest, p->source.callID, p->type, WRAPPEDEXCEPTION, &e.ssException );
-        }
-
-        SafeDelete( p );
-    }
-
-    // send queued updates
-    _SendQueuedUpdates();
-
-    return true;
 }
 
 void Player::Process() {
@@ -485,7 +442,7 @@ void Player::MoveToLocation( uint32 location, const GPoint& pt )
     EnterSystem( false );
     UpdateLocation();
 
-    _SendSessionChange();
+    m_client->_SendSessionChange();
 }
 
 void Player::MoveToPosition(const GPoint &pt) {
@@ -680,197 +637,6 @@ void Player::_UpdateSession2( uint32 characterID )
         mSession.SetInt( "shipid", shipID );
 }
 
-void Player::_SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel )
-{
-    //build the packet:
-    PyPacket* p = new PyPacket;
-    p->type_string = "macho.CallRsp";
-    p->type = CALL_RSP;
-
-    p->source = source;
-
-    p->dest.type = PyAddress::Client;
-    p->dest.typeID = GetAccountID();
-    p->dest.callID = callID;
-
-    p->userid = GetAccountID();
-
-    p->payload = new PyTuple(1);
-    p->payload->SetItem( 0, new PySubStream( *return_value ) );
-    *return_value = NULL;   //consumed
-
-    if(channel != NULL)
-    {
-        p->named_payload = new PyDict();
-        p->named_payload->SetItemString( "channel", new PyString( channel ) );
-    }
-
-    FastQueuePacket( &p );
-}
-
-void Player::_SendException( const PyAddress& source, uint64 callID, MACHONETMSG_TYPE in_response_to, MACHONETERR_TYPE exception_type, PyRep** payload )
-{
-    //build the packet:
-    PyPacket* p = new PyPacket;
-    p->type_string = "macho.ErrorResponse";
-    p->type = ERRORRESPONSE;
-
-    p->source = source;
-
-    p->dest.type = PyAddress::Client;
-    p->dest.typeID = GetAccountID();
-    p->dest.callID = callID;
-
-    p->userid = GetAccountID();
-
-    macho_MachoException e;
-    e.in_response_to = in_response_to;
-    e.exception_type = exception_type;
-    e.payload = *payload;
-    *payload = NULL;    //consumed
-
-    p->payload = e.Encode();
-    FastQueuePacket(&p);
-}
-
-void Player::_SendSessionChange()
-{
-    if( !mSession.isDirty() )
-        return;
-
-    SessionChangeNotification scn;
-    scn.changes = new PyDict;
-
-    mSession.EncodeChanges( scn.changes );
-    if( scn.changes->empty() )
-        return;
-
-    sLog.Log("Client","Session updated, sending session change");
-    scn.changes->Dump(CLIENT__SESSION, "  Changes: ");
-
-    //this is probably not necessary...
-    scn.nodesOfInterest.push_back( services().GetNodeID() );
-
-    //build the packet:
-    PyPacket* p = new PyPacket;
-    p->type_string = "macho.SessionChangeNotification";
-    p->type = SESSIONCHANGENOTIFICATION;
-
-    p->source.type = PyAddress::Node;
-    p->source.typeID = services().GetNodeID();
-    p->source.callID = 0;
-
-    p->dest.type = PyAddress::Client;
-    p->dest.typeID = GetAccountID();
-    p->dest.callID = 0;
-
-    p->userid = GetAccountID();
-
-    p->payload = scn.Encode();
-
-    p->named_payload = NULL;
-    //p->named_payload = new PyDict();
-    //p->named_payload->SetItemString( "channel", new PyString( "sessionchange" ) );
-
-
-    //_log(CLIENT__IN_ALL, "Sending Session packet:");
-    //PyLogDumpVisitor dumper(CLIENT__OUT_ALL, CLIENT__OUT_ALL);
-    //p->Dump(CLIENT__OUT_ALL, dumper);
-
-
-
-    FastQueuePacket( &p );
-}
-
-void Player::_SendPingRequest()
-{
-    PyPacket *ping_req = new PyPacket();
-
-    ping_req->type = PING_REQ;
-    ping_req->type_string = "macho.PingReq";
-
-    ping_req->source.type = PyAddress::Node;
-    ping_req->source.typeID = services().GetNodeID();
-    ping_req->source.service = "ping";
-    ping_req->source.callID = 0;
-
-    ping_req->dest.type = PyAddress::Client;
-    ping_req->dest.typeID = GetAccountID();
-    ping_req->dest.callID = 0;
-
-    ping_req->userid = GetAccountID();
-
-    ping_req->payload = new_tuple( new PyList() ); //times
-    ping_req->named_payload = new PyDict();
-
-    FastQueuePacket(&ping_req);
-}
-
-void Player::_SendPingResponse( const PyAddress& source, uint64 callID )
-{
-    PyPacket* ret = new PyPacket;
-    ret->type = PING_RSP;
-    ret->type_string = "macho.PingRsp";
-
-    ret->source = source;
-
-    ret->dest.type = PyAddress::Client;
-    ret->dest.typeID = GetAccountID();
-    ret->dest.callID = callID;
-
-    ret->userid = GetAccountID();
-
-    /*  Here the hacking begins, the ping packet handles the timestamps of various packet handling steps.
-        To really simulate/emulate that we need the various packet handlers which in fact we don't have ( :P ).
-        So the next piece of code "fake's" it, with a slight delay on the received packet time.
-    */
-    PyList* pingList = new PyList;
-    PyTuple* pingTuple;
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));        // this should be the time the packet was received (we cheat here a bit)
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));             // this is the time the packet is (handled/writen) by the (proxy/server) so we're cheating a bit again.
-    pingTuple->SetItem(2, new PyString("proxy::handle_message"));
-    pingList->AddItem( pingTuple );
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
-    pingTuple->SetItem(2, new PyString("proxy::writing"));
-    pingList->AddItem( pingTuple );
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
-    pingTuple->SetItem(2, new PyString("server::handle_message"));
-    pingList->AddItem( pingTuple );
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
-    pingTuple->SetItem(2, new PyString("server::turnaround"));
-    pingList->AddItem( pingTuple );
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
-    pingTuple->SetItem(2, new PyString("proxy::handle_message"));
-    pingList->AddItem( pingTuple );
-
-    pingTuple = new PyTuple(3);
-    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
-    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
-    pingTuple->SetItem(2, new PyString("proxy::writing"));
-    pingList->AddItem( pingTuple );
-
-    // Set payload
-    ret->payload = new PyTuple( 1 );
-    ret->payload->SetItem( 0, pingList );
-
-    // Don't clone so it eats the ret object upon sending.
-    FastQueuePacket( &ret );
-}
-
 //these are specialized Queue functions when our caller can
 //easily provide us with our own copy of the data.
 void Player::QueueDestinyUpdate(PyTuple **du)
@@ -976,7 +742,7 @@ void Player::SendNotification(const PyAddress &dest, EVENotificationStream &noti
         p->Dump(CLIENT__NOTIFY_REP, dumper);
     }
 
-    FastQueuePacket(&p);
+    //FastQueuePacket(&p);
 }
 
 PyDict *Player::MakeSlimItem() const {
@@ -1162,7 +928,7 @@ bool Player::SelectCharacter( uint32 char_id )
     //johnsus - characterOnline mod
     m_services.serviceDB().SetCharacterOnlineStatus( GetCharacterID(), true );
 
-    _SendSessionChange();
+    m_client->_SendSessionChange();
 
     // Release the item factory now that the ItemFactory is finished being used:
     m_services.item_factory.UnsetUsingClient();
@@ -1451,7 +1217,7 @@ void Player::JoinCorporationUpdate(uint32 corp_id) {
     _UpdateSession( GetChar() );
 
     //logs indicate that we need to push this update out asap.
-    _SendSessionChange();
+    m_client->_SendSessionChange();
 }
 
 /************************************************************************/
@@ -1466,7 +1232,7 @@ void Player::OnCharNoLongerInStation()
 
     PyTuple* tmp = n.Encode();
     // this entire line should be something like this Broadcast("OnCharNoLongerInStation", "stationid", &tmp);
-    services().entity_list.Broadcast( "OnCharNoLongerInStation", "stationid", &tmp );
+    m_services.entity_list.Broadcast( "OnCharNoLongerInStation", "stationid", &tmp );
 }
 
 /* besides broadcasting the message this function should handle everything for this event */
@@ -1478,7 +1244,7 @@ void Player::OnCharNowInStation()
     n.allianceID = GetAllianceID();
 
     PyTuple* tmp = n.Encode();
-    services().entity_list.Broadcast( "OnCharNowInStation", "stationid", &tmp );
+    m_services.entity_list.Broadcast( "OnCharNowInStation", "stationid", &tmp );
 }
 
 /************************************************************************/
@@ -1487,7 +1253,7 @@ void Player::OnCharNowInStation()
 void Player::DisconnectClient()
 {
     //initiate closing the client TCP Connection
-    CloseClientConnection();
+    //CloseClientConnection();
 }
 void Player::BanClient()
 {
@@ -1495,7 +1261,7 @@ void Player::BanClient()
     SendNotifyMsg("You have been banned from this server and will be disconnected shortly.  You will no longer be able to log in");
 
     //ban the client
-    services().serviceDB().SetAccountBanStatus( GetAccountID(), true );
+    m_services.serviceDB().SetAccountBanStatus( GetAccountID(), true );
 }
 
 void Player::UpdateSession(const char *sessionType, int value)

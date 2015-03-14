@@ -32,10 +32,10 @@ class PyObject;
 class AccountDB : public ServiceDB
 {
 public:
-    PyObject *GetEntryTypes();
-    PyObject *GetKeyMap();
-    PyObject *GetJournal(uint32 charID, uint32 refTypeID, uint32 accountKey, uint64 transDate);//mandela
+    PyObject *GetEntryTypes(DBcore *db);
+    PyObject *GetKeyMap(DBcore *db);
+    PyObject *GetJournal(DBcore *db, uint32 charID, uint32 refTypeID, uint32 accountKey, uint64 transDate);//mandela
 
-    bool CheckIfCorporation(uint32 corpID);
+    bool CheckIfCorporation(DBcore *db, uint32 corpID);
 };
 #endif

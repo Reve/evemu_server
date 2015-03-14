@@ -83,11 +83,12 @@ typedef DgmTypeAttributeMap::iterator           DgmTypeAttributeMapItr;
 class dgmtypeattributemgr
 {
 public:
-    dgmtypeattributemgr(); // also do init stuff, db loading
+    dgmtypeattributemgr(DBcore &db); // also do init stuff, db loading
     ~dgmtypeattributemgr();
 
     DgmTypeAttributeSet* GetDmgTypeAttributeSet(uint32 typeID);
 private:
+	DBcore m_db;
     DgmTypeAttributeMap mDgmTypeAttrInfo;
 };
 

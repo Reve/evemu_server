@@ -72,7 +72,7 @@ void EntityList::Process()
     client_list::iterator client_end = m_clients.end();
     client_list::iterator client_tmp;
 
-    while(client_cur != client_end)
+   /* while(client_cur != client_end)
     {
         active_client = *client_cur;
         if(!active_client->ProcessNet())
@@ -87,7 +87,7 @@ void EntityList::Process()
         {
             client_cur++;
         }
-    }
+    }*/
 
     SystemManager *active_system = NULL;
     bool destiny = DestinyManager::IsTicActive();

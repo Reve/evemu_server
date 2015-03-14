@@ -45,32 +45,32 @@ class ServiceDB
 public:
 
     //entity/item stuff:
-    PyObject *GetSolRow(uint32 systemID) const;
-    PyObject *GetSolDroneState(uint32 systemID) const;
+    PyObject *GetSolRow(DBcore *db, uint32 systemID) const;
+    PyObject *GetSolDroneState(DBcore *db, uint32 systemID) const;
 
-    bool GetSystemInfo(uint32 systemID, uint32 *constellationID, uint32 *regionID, std::string *name, std::string *securityClass);    // mapSolarSystems
-    bool GetStaticItemInfo(uint32 itemID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position);    // mapDenormalize
-    bool GetStationInfo(uint32 stationID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position, GPoint *dockPosition, GVector *dockOrientation);    // staStations
+    bool GetSystemInfo(DBcore *db, uint32 systemID, uint32 *constellationID, uint32 *regionID, std::string *name, std::string *securityClass);    // mapSolarSystems
+    bool GetStaticItemInfo(DBcore *db, uint32 itemID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position);    // mapDenormalize
+    bool GetStationInfo(DBcore *db, uint32 stationID, uint32 *systemID, uint32 *constellationID, uint32 *regionID, GPoint *position, GPoint *dockPosition, GVector *dockOrientation);    // staStations
 
-    uint32 GetDestinationStargateID(uint32 fromSystem, uint32 toSystem);
+    uint32 GetDestinationStargateID(DBcore *db, uint32 fromSystem, uint32 toSystem);
 
-    bool GetConstant(const char *name, uint32 &into);
+    bool GetConstant(DBcore *db, const char *name, uint32 &into);
 
     //these really want to move back into AccountDB
-    bool GiveCash( uint32 characterID, JournalRefType refTypeID, uint32 ownerFromID, uint32 ownerToID, const char *argID1, uint32 accountID, EVEAccountKeys accountKey, double amount, double balance, const char *reason);
-    double GetCorpBalance(uint32 corpID);
-    bool AddBalanceToCorp(uint32 corpID, double amount);
+    bool GiveCash(DBcore *db, uint32 characterID, JournalRefType refTypeID, uint32 ownerFromID, uint32 ownerToID, const char *argID1, uint32 accountID, EVEAccountKeys accountKey, double amount, double balance, const char *reason);
+    double GetCorpBalance(DBcore *db, uint32 corpID);
+    bool AddBalanceToCorp(DBcore *db, uint32 corpID, double amount);
 
     //johnsus - serverOnline mod
-    void SetServerOnlineStatus(bool onoff_status);
+    void SetServerOnlineStatus(DBcore *db, bool onoff_status);
     //johnsus - characterOnline mod
-    void SetCharacterOnlineStatus(uint32 char_id, bool onoff_status);
+    void SetCharacterOnlineStatus(DBcore *db, uint32 char_id, bool onoff_status);
 
-    void SetAccountOnlineStatus(uint32 accountID, bool onoff_status);
-    void SetAccountBanStatus(uint32 accountID, bool onoff_status);
+    void SetAccountOnlineStatus(DBcore *db, uint32 accountID, bool onoff_status);
+    void SetAccountBanStatus(DBcore *db, uint32 accountID, bool onoff_status);
 
 protected:
-    void ProcessStringChange(const char * key, const std::string & oldValue, const std::string & newValue, PyDict * notif, std::vector<std::string> & dbQ);
+    void ProcessStringChange(DBcore *db, const char * key, const std::string & oldValue, const std::string & newValue, PyDict * notif, std::vector<std::string> & dbQ);
     void ProcessRealChange(const char * key, double oldValue, double newValue, PyDict * notif, std::vector<std::string> & dbQ);
     void ProcessIntChange(const char * key, uint32 oldValue, uint32 newValue, PyDict * notif, std::vector<std::string> & dbQ);
 

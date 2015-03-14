@@ -92,7 +92,7 @@ PyResult SkillMgrBound::Handle_GetCharacterAttributeModifiers(PyCallArgs &call) 
 }
 
 PyResult SkillMgrBound::Handle_CharStopTrainingSkill(PyCallArgs &call) {
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     // clear & update ...
     ch->ClearSkillQueue();
@@ -102,7 +102,7 @@ PyResult SkillMgrBound::Handle_CharStopTrainingSkill(PyCallArgs &call) {
  }
 
 PyResult SkillMgrBound::Handle_GetEndOfTraining(PyCallArgs &call) {
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     return new PyLong( ch->GetEndOfTraining().get_int() );
 }
@@ -131,7 +131,7 @@ PyResult SkillMgrBound::Handle_GetSkillHistory( PyCallArgs& call )
 	// NOTE:  Screenshots from DaVinci show that this call sends back only 20 most recent entries in this history
 
 	// TODO: get most recent 20 entries for skill history from DB table via character object
-	CharacterRef ch = call.client->GetChar();
+	CharacterRef ch = call.player->GetChar();
 	//ch->GetSkillHistory();
 
 	rowset.lines = new PyList;
@@ -158,7 +158,7 @@ PyResult SkillMgrBound::Handle_CharAddImplant( PyCallArgs& call )
     Call_SingleIntegerArg args;
     if( !args.Decode( &call.tuple ) )
     {
-        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName() );
+        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName() );
         return NULL;
     }
 
@@ -173,7 +173,7 @@ PyResult SkillMgrBound::Handle_RemoveImplantFromCharacter( PyCallArgs& call )
     Call_SingleIntegerArg args;
     if( !args.Decode( &call.tuple ) )
     {
-        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName() );
+        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName() );
         return NULL;
     }
 
@@ -184,7 +184,7 @@ PyResult SkillMgrBound::Handle_RemoveImplantFromCharacter( PyCallArgs& call )
 
 PyResult SkillMgrBound::Handle_GetSkillQueueAndFreePoints(PyCallArgs &call) {
     // returns list of skills currently in the skill queue.
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     return ch->GetSkillQueue();
 }
@@ -192,11 +192,11 @@ PyResult SkillMgrBound::Handle_GetSkillQueueAndFreePoints(PyCallArgs &call) {
  PyResult SkillMgrBound::Handle_SaveSkillQueue(PyCallArgs &call) {
     Call_SaveSkillQueue args;
     if(!args.Decode(&call.tuple)) {
-        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName());
         return NULL;
     }
 
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     ch->ClearSkillQueue();
 
@@ -208,7 +208,7 @@ PyResult SkillMgrBound::Handle_GetSkillQueueAndFreePoints(PyCallArgs &call) {
     {
         if( !el.Decode( *cur ) )
         {
-            _log(CLIENT__ERROR, "%s: Failed to decode element of SkillQueue. Skipping.", call.client->GetName());
+            _log(CLIENT__ERROR, "%s: Failed to decode element of SkillQueue. Skipping.", call.player->GetName());
             continue;
         }
 
@@ -223,11 +223,11 @@ PyResult SkillMgrBound::Handle_GetSkillQueueAndFreePoints(PyCallArgs &call) {
 PyResult SkillMgrBound::Handle_AddToEndOfSkillQueue(PyCallArgs &call) {
     Call_TwoIntegerArgs args;
     if(!args.Decode(&call.tuple)) {
-        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName());
         return NULL;
     }
 
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     ch->AddToSkillQueue(args.arg1, args.arg2);
     ch->UpdateSkillQueue();
@@ -244,12 +244,12 @@ PyResult SkillMgrBound::Handle_RespecCharacter(PyCallArgs &call)
         return NULL;
     }
 	
-	CharacterRef cref = call.client->GetChar();
+	CharacterRef cref = call.player->GetChar();
 	if(cref->GetSkillInTraining() != NULL) 
 		throw(PyException(MakeUserError("RespecSkillInTraining")));
 
     // return early if this is an illegal call
-    if (!m_db.ReportRespec(call.client->GetCharacterID()))
+    if (!m_db.ReportRespec(call.player->GetCharacterID()))
         return NULL;
 
     // TODO: validate these values (and their sum)
@@ -269,7 +269,7 @@ PyResult SkillMgrBound::Handle_GetRespecInfo( PyCallArgs& call )
     uint32 freeRespecs;
     uint64 lastRespec = 0;
     uint64 nextRespec;
-    if (!m_db.GetRespecInfo(call.client->GetCharacterID(), freeRespecs, lastRespec, nextRespec))
+    if (!m_db.GetRespecInfo(call.player->GetCharacterID(), freeRespecs, lastRespec, nextRespec))
     {
         // insert dummy values
         freeRespecs = 0;
@@ -290,7 +290,7 @@ PyResult SkillMgrBound::Handle_CharStartTrainingSkillByTypeID( PyCallArgs& call 
     Call_SingleIntegerArg args;
     if( !args.Decode( &call.tuple ) )
     {
-        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName() );
+        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName() );
         return NULL;
     }
 
@@ -304,11 +304,11 @@ PyResult SkillMgrBound::Handle_InjectSkillIntoBrain(PyCallArgs &call)
 {
     Call_InjectSkillIntoBrain args;
     if( !args.Decode( &call.tuple ) ) {
-        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.client->GetName() );
+        codelog( CLIENT__ERROR, "%s: failed to decode arguments", call.player->GetName() );
         return NULL;
     }
 
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     std::vector<int32>::iterator cur, end;
     cur = args.skills.begin();
@@ -318,14 +318,14 @@ PyResult SkillMgrBound::Handle_InjectSkillIntoBrain(PyCallArgs &call)
         SkillRef skill = m_manager->item_factory.GetSkill( *cur );
         if( !skill )
         {
-            codelog( ITEM__ERROR, "%s: failed to load skill item %u for injection.", call.client->GetName(), *cur );
+            codelog( ITEM__ERROR, "%s: failed to load skill item %u for injection.", call.player->GetName(), *cur );
             continue;
         }
 
         if( !ch->InjectSkillIntoBrain( (SkillRef)skill ) )
         {
             //TODO: build and send UserError about injection failure.
-            codelog(ITEM__ERROR, "%s: Injection of skill %u failed", call.client->GetName(), skill->itemID() );
+            codelog(ITEM__ERROR, "%s: Injection of skill %u failed", call.player->GetName(), skill->itemID() );
         }
     }
 

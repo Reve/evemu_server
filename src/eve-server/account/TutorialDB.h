@@ -34,13 +34,13 @@ class PyRep;
 class TutorialDB : public ServiceDB
 {
 public:
-    PyRep *GetPageCriterias(uint32 tutorialID);
-    PyRep *GetPages(uint32 tutorialID);
-    PyRep *GetTutorial(uint32 tutorialID);
-    PyRep *GetTutorialCriterias(uint32 tutorialID);
-    PyRep *GetAllTutorials();
-    PyRep *GetAllCriterias();
-    PyRep *GetCategories();
+    PyRep *GetPageCriterias(DBcore *db, uint32 tutorialID);
+    PyRep *GetPages(DBcore *db, uint32 tutorialID);
+    PyRep *GetTutorial(DBcore *db, uint32 tutorialID);
+    PyRep *GetTutorialCriterias(DBcore *db, uint32 tutorialID);
+    PyRep *GetAllTutorials(DBcore *db);
+    PyRep *GetAllCriterias(DBcore *db);
+    PyRep *GetCategories(DBcore *db);
 };
 
 #endif

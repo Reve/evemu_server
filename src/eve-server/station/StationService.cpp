@@ -49,7 +49,7 @@ PyResult StationService::Handle_GetSolarSystem(PyCallArgs &call) {
     Call_SingleIntegerArg arg;
     if (!arg.Decode(&call.tuple))
     {
-        codelog(CLIENT__ERROR, "%s: Failed to decode GetSolarSystem arguments.", call.client->GetName());
+        codelog(CLIENT__ERROR, "%s: Failed to decode GetSolarSystem arguments.", call.player->GetName());
         return NULL;
     }
 
@@ -63,7 +63,7 @@ PyResult StationService::Handle_GetGuests(PyCallArgs &call) {
     PyList *res = new PyList();
 
     std::vector<Player *> clients;
-    m_manager->entity_list.FindByStationID(call.client->GetStationID(), clients);
+    m_manager->entity_list.FindByStationID(call.player->GetStationID(), clients);
     std::vector<Player *>::iterator cur, end;
     cur = clients.begin();
     end = clients.end();

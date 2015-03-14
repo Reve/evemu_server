@@ -44,7 +44,7 @@ class CommandDispatcher;
  */
 
 #define COMMAND(name, role, description) \
-    PyResult Command_##name(Player *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
+    PyResult Command_##name(Player *who, DBcore *db, CommandDB* command_db, PyServiceMgr *services, const Seperator &args);
 #include "admin/AllCommandsList.h"
 
 extern void RegisterAllCommands(CommandDispatcher &into);

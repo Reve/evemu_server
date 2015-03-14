@@ -208,7 +208,7 @@ PyResult AgentMgrBound::Handle_DoAction(PyCallArgs &call) {
     //takes a single argument, which may be None, or may be an integer actionID
     Call_SingleArg args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "Failed to decode args from '%s'", call.client->GetName());
+        codelog(SERVICE__ERROR, "Failed to decode args from '%s'", call.player->GetName());
         return NULL;
     }
 
@@ -224,7 +224,7 @@ PyResult AgentMgrBound::Handle_DoAction(PyCallArgs &call) {
         sLog.Error( "AgentMgrBound::Handle_DoAction()", "args.arg->IsInt() failed.  Expected type Int, got type %s", args.arg->TypeString() );
     }
     else
-        m_agent->DoAction( call.client, args.arg->AsInt()->value(), res.agentSays, choices );
+        m_agent->DoAction( call.player, args.arg->AsInt()->value(), res.agentSays, choices );
 
     DoAction_Dialogue_Item choice;
 

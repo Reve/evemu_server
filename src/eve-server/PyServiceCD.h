@@ -26,7 +26,7 @@
 #ifndef __PYSERVICECD_H_INCL__
 #define __PYSERVICECD_H_INCL__
 
-#include "Player.h"
+#include "Client.h"
 #include "PyCallable.h"
 
 /*
@@ -52,13 +52,12 @@ public:
     }
 
     //CallDispatcher interface:
-    virtual PyResult 
-		(const std::string &method_name, PyCallArgs &call) {
+    virtual PyResult Dispatch(const std::string &method_name, PyCallArgs &call) {
         //this could be done a lot more efficiently with a custom data structure IF NEEDED
         mapitr res;
         res = m_serviceCalls.find(method_name);
         if(res == m_serviceCalls.end()) {
-            sLog.Error("Server","Unknown call to '%s' by '%s'", method_name.c_str(), call.client->GetName());
+            sLog.Error("Server","Unknown call to '%s' by '%s'", method_name.c_str(), call.player->GetName());
             return NULL;
         }
 

@@ -39,7 +39,6 @@ public:
 	void add(Client **client);
 	int getCount();
 	Client* findAccount(int id);
-	static ClientList& get() { return ClientList::get(); }
 
 	void Process();
 
@@ -47,5 +46,9 @@ protected:
 	typedef std::list<Client*> client_list;
 	client_list m_clients;
 };
+
+//Singleton
+#define sClientList \
+	( ClientList::get() )
 
 #endif

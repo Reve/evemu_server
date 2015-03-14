@@ -25,7 +25,7 @@
 
 #include "eve-server.h"
 
-#include "Player.h"
+#include "Client.h"
 #include "PyBoundObject.h"
 #include "PyService.h"
 
@@ -113,7 +113,7 @@ PyResult PyService::Handle_MachoBindObject( PyCallArgs& call )
 
         _log( SERVICE__MESSAGE, "%s Service: MachoBindObject also contains call to %s", GetName(), boundcall.method_name.c_str() );
 
-        PyCallArgs sub_args( call.client, boundcall.arguments, boundcall.dict_arguments );
+        PyCallArgs sub_args( call.client, call.player, boundcall.arguments, boundcall.dict_arguments );
 
         //do the call:
         PyResult result = our_obj->Call( boundcall.method_name, sub_args );
@@ -182,7 +182,7 @@ PyObject *PyService::_BuildCachedReturn( PySubStream** in_result, const char* se
     return cached.Encode();
 }
 
-PyBoundObject * PyService::_CreateBoundObject( Player *c, const PyRep *bind_args )
+PyBoundObject * PyService::_CreateBoundObject( Client *c, const PyRep *bind_args )
 {
     return NULL;
 }

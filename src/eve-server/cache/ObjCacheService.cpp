@@ -135,10 +135,11 @@ const uint32 ObjCacheService::CharCreateNewExtraCachableObjectCount = sizeof(Obj
 
 PyCallable_Make_InnerDispatcher(ObjCacheService)
 
-ObjCacheService::ObjCacheService(PyServiceMgr *mgr, const char *cacheDir)
-: PyService(mgr, "objectCaching"),
-  m_dispatch(new Dispatcher(this)),
-  m_cacheDir(cacheDir)
+ObjCacheService::ObjCacheService(PyServiceMgr *mgr, DBcore *db, const char *cacheDir): 
+	PyService(mgr, "objectCaching"),
+	m_dispatch(new Dispatcher(this)),
+	m_db(db),
+	m_cacheDir(cacheDir)
 {
 	/*
 	*	Create server_cache directory to store the cached objects 
@@ -256,7 +257,7 @@ PyResult ObjCacheService::Handle_GetCachableObject(PyCallArgs &call) {
     CallGetCachableObject args;
     if(!args.Decode(&call.tuple))
     {
-        sLog.Error("Obj Cache Srv", "%s: Unable to decode arguments", call.client->GetName());
+        sLog.Error("Obj Cache Srv", "%s: Unable to decode arguments", call.player->GetName());
         return NULL;
     }
 
@@ -297,7 +298,7 @@ PySubStream* ObjCacheService::LoadCachedFile(const char *filename, const char *o
 }
 
 
-bool ObjCacheService::_LoadCachableObject(const PyRep *objectID) {
+bool ObjCacheService::_LoadCachableObject(DBcore *db, const PyRep *objectID) {
     if(m_cache.HaveCached(objectID))
         return true;
 
@@ -314,7 +315,7 @@ bool ObjCacheService::_LoadCachableObject(const PyRep *objectID) {
 
     //first try to generate it from the database...
     //we go to the DB with a string, not a rep
-    PyRep *cache = m_db.GetCachableObject(objectID_string);
+    PyRep *cache = cache_db.GetCachableObject(db, objectID_string);
     if(cache != NULL) {
         //we have generated the cache file in question, remember it
         m_cache.UpdateCache(objectID, &cache);

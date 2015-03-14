@@ -63,6 +63,7 @@ detect clients moving into agro radius
 
 #include "system/SystemEntity.h"
 #include "ship/ModuleManager.h"
+#include "PyServiceMgr.h"
 
 class CryptoChallengePacket;
 class EVENotificationStream;
@@ -79,21 +80,19 @@ class PyDict;
 class PyPacket;
 class Player;
 class PyRep;
+class Client;
 
 //DO NOT INHERIT THIS OBJECT!
 class Player
-: public DynamicSystemEntity,
-  protected EVEClientSession,
-  protected EVEPacketDispatcher
+: public DynamicSystemEntity
 {
 public:
-    Player(PyServiceMgr &services, EVETCPConnection** con);
+    Player(Client* client, PyServiceMgr& services);
     virtual ~Player();
 
-    bool            ProcessNet();
     virtual void    Process();
 
-    PyServiceMgr& services() const { return m_services; }
+	Client* GetClient(){ return m_client; }
 
     /********************************************************************/
     /* Session values                                                   */
@@ -243,8 +242,8 @@ protected:
     void _UpdateSession( const CharacterConstRef& character );
     void _UpdateSession2( uint32 characterID  );
 
-    PyServiceMgr& m_services;
-    Timer m_pingTimer;
+	Client *m_client;
+	PyServiceMgr m_services;
     ClientSession mSession;
 
     SystemManager *m_system;    //we do not own this

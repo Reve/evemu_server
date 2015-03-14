@@ -84,12 +84,12 @@ PyResult CharUnboundMgrService::Handle_SelectCharacterID(PyCallArgs &call) {
         return NULL;
     }
 
-    call.client->SelectCharacter(arg.charID);
+    call.player->SelectCharacter(arg.charID);
     return NULL;
 }
 
 PyResult CharUnboundMgrService::Handle_GetCharactersToSelect(PyCallArgs &call) {
-    return(m_db.GetCharacterList(call.client->GetAccountID()));
+    return(m_db.GetCharacterList(call.player->GetAccountID()));
 }
 
 PyResult CharUnboundMgrService::Handle_GetCharacterToSelect(PyCallArgs &call) {
@@ -115,7 +115,7 @@ PyResult CharUnboundMgrService::Handle_DeleteCharacter(PyCallArgs &call) {
         return NULL;
     }
 
-    return m_db.DeleteCharacter(call.client->GetAccountID(), args.arg);
+    return m_db.DeleteCharacter(call.player->GetAccountID(), args.arg);
 }
 
 PyResult CharUnboundMgrService::Handle_PrepareCharacterForDelete(PyCallArgs &call) {
@@ -125,7 +125,7 @@ PyResult CharUnboundMgrService::Handle_PrepareCharacterForDelete(PyCallArgs &cal
         return NULL;
     }
 
-    return new PyLong((int64)m_db.PrepareCharacterForDelete(call.client->GetAccountID(), args.arg));
+    return new PyLong((int64)m_db.PrepareCharacterForDelete(call.player->GetAccountID(), args.arg));
 }
 
 PyResult CharUnboundMgrService::Handle_CancelCharacterDeletePrepare(PyCallArgs &call) {
@@ -135,7 +135,7 @@ PyResult CharUnboundMgrService::Handle_CancelCharacterDeletePrepare(PyCallArgs &
         return NULL;
     }
 
-    m_db.CancelCharacterDeletePrepare(call.client->GetAccountID(), args.arg);
+    m_db.CancelCharacterDeletePrepare(call.player->GetAccountID(), args.arg);
 
     // the client doesn't care what we return here
     return NULL;
@@ -179,7 +179,7 @@ PyResult CharUnboundMgrService::Handle_CreateCharacterWithDoll(PyCallArgs &call)
             arg.bloodlineID, arg.genderID, arg.ancestryID);
 
     // obtain character type
-    m_manager->item_factory.SetUsingClient( call.client );
+    m_manager->item_factory.SetUsingClient( call.player );
     const CharacterType *char_type = m_manager->item_factory.GetCharacterTypeByBloodline(arg.bloodlineID);
     if(char_type == NULL)
         return NULL;
@@ -196,7 +196,7 @@ PyResult CharUnboundMgrService::Handle_CreateCharacterWithDoll(PyCallArgs &call)
     idata.quantity = 1;
     idata.singleton = true;
 
-    cdata.accountID = call.client->GetAccountID();
+    cdata.accountID = call.player->GetAccountID();
     cdata.gender = arg.genderID;
     cdata.ancestryID = arg.ancestryID;
     cdata.schoolID = arg.schoolID;
@@ -387,7 +387,7 @@ PyResult CharUnboundMgrService::Handle_CreateCharacterWithDoll(PyCallArgs &call)
     _log( CLIENT__MESSAGE, "Sending char create ID %u as reply", char_item->itemID() );
 
     // we need to report the charID to the ImageServer so it can correctly assign a previously received image
-    sImageServer.ReportNewCharacter(call.client->GetAccountID(), char_item->itemID());
+    sImageServer.ReportNewCharacter(call.player->GetAccountID(), char_item->itemID());
 
     // Release the item factory now that the character is finished being accessed:
     m_manager->item_factory.UnsetUsingClient();

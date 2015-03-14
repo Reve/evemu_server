@@ -72,9 +72,9 @@ PyResult Standing2Service::Handle_GetMyStandings(PyCallArgs &call) {
     PyRep *charprime;
     PyRep *npccharstandings;
 
-    charstandings = m_db.GetCharStandings(call.client->GetCharacterID());
-    charprime = m_db.GetCharPrimeStandings(call.client->GetCharacterID());
-    npccharstandings = m_db.GetCharNPCStandings(call.client->GetCharacterID());
+    charstandings = m_db.GetCharStandings(call.player->GetCharacterID());
+    charprime = m_db.GetCharPrimeStandings(call.player->GetCharacterID());
+    npccharstandings = m_db.GetCharNPCStandings(call.player->GetCharacterID());
 
     PyDict *corpstandings = new PyDict();
     PyDict *corpprime = new PyDict();
@@ -134,7 +134,7 @@ PyResult Standing2Service::Handle_GetSecurityRating(PyCallArgs &call) {
 PyResult Standing2Service::Handle_GetStandingTransactions(PyCallArgs &call) {
     Call_GetStandingTransactions args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -144,10 +144,10 @@ PyResult Standing2Service::Handle_GetStandingTransactions(PyCallArgs &call) {
 }
 
 PyResult Standing2Service::Handle_GetCharStandings(PyCallArgs &call) {
-    ObjectCachedSessionMethodID method_id(GetName(), "GetCharStandings", call.client->GetCharacterID());
+    ObjectCachedSessionMethodID method_id(GetName(), "GetCharStandings", call.player->GetCharacterID());
 
     if(!m_manager->cache_service->IsCacheLoaded(method_id)) {
-        PyObjectEx *t = m_db.GetCharStandings(call.client->GetCharacterID());
+        PyObjectEx *t = m_db.GetCharStandings(call.player->GetCharacterID());
 
         m_manager->cache_service->GiveCache(method_id, (PyRep **)&t);
     }
@@ -155,10 +155,10 @@ PyResult Standing2Service::Handle_GetCharStandings(PyCallArgs &call) {
     return(m_manager->cache_service->MakeObjectCachedSessionMethodCallResult(method_id, "charID"));
 }
 PyResult Standing2Service::Handle_GetCorpStandings(PyCallArgs &call) {
-    ObjectCachedSessionMethodID method_id(GetName(), "GetCorpStandings", call.client->GetCorporationID());
+    ObjectCachedSessionMethodID method_id(GetName(), "GetCorpStandings", call.player->GetCorporationID());
 
     if(!m_manager->cache_service->IsCacheLoaded(method_id)) {
-        PyObjectEx *t = m_db.GetCorpStandings(call.client->GetCorporationID());
+        PyObjectEx *t = m_db.GetCorpStandings(call.player->GetCorporationID());
 
         m_manager->cache_service->GiveCache(method_id, (PyRep **)&t);
     }

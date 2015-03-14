@@ -194,31 +194,31 @@ PyResult LSCService::Handle_GetChannels(PyCallArgs &call)
     //    2    Solar System name
     //    3    Constellation name
     //    4    Region name
-    m_db.GetChannelNames(call.client->GetCharacterID(), names);
+    m_db.GetChannelNames(call.player->GetCharacterID(), names);
 
-    uint32 channelID = call.client->GetCharacterID();
+    uint32 channelID = call.player->GetCharacterID();
 
     // Use characterID to join this character's mailing list (channelID == characterID):
     if( m_channels.find(channelID) == m_channels.end() )
-        CreateChannel(channelID, call.client->GetName(), LSCChannel::normal, true);
+        CreateChannel(channelID, call.player->GetName(), LSCChannel::normal, true);
 
     // Use corporationID to join this character's CORP chat channel:
-    channelID = call.client->GetCorporationID();
+    channelID = call.player->GetCorporationID();
     if( m_channels.find(channelID) == m_channels.end() )
         CreateChannel(channelID, "System Channels\\Corp", names[1].c_str(), LSCChannel::corp);
 
     // Use solarSystemID to join the Local chat of this character's present solar system:
-    channelID = call.client->GetSystemID();
+    channelID = call.player->GetSystemID();
     if( m_channels.find(channelID) == m_channels.end() )
         CreateChannel(channelID, "System Channels\\Local", names[2].c_str(), LSCChannel::solarsystem);
 
     // Use constellationID to join the Constellation chat of this character's present constellation:
-    channelID = call.client->GetConstellationID();
+    channelID = call.player->GetConstellationID();
     if( m_channels.find(channelID) == m_channels.end() )
         CreateChannel(channelID, "System Channels\\Constellation", names[3].c_str(), LSCChannel::constellation);
 
     // Use regionID to join the Region chat of this character's present region:
-    channelID = call.client->GetRegionID();
+    channelID = call.player->GetRegionID();
     if( m_channels.find(channelID) == m_channels.end() )
         CreateChannel(channelID, "System Channels\\Region", names[4].c_str(), LSCChannel::region);
 
@@ -236,7 +236,7 @@ PyResult LSCService::Handle_GetChannels(PyCallArgs &call)
     int channelCount = 0;
 
     // Get this character's subscribed Private Channel names and IDs:
-    m_db.GetChannelSubscriptions(call.client->GetCharacterID(), charChannelIDs, charChannelNames, charChannelMOTDs,
+    m_db.GetChannelSubscriptions(call.player->GetCharacterID(), charChannelIDs, charChannelNames, charChannelMOTDs,
         charOwnerIDs, charComparisonKeys, charMemberless, charPasswords, charMailingLists, charCSPAs, charTemporaries,
         charModes, channelCount);
 
@@ -278,7 +278,7 @@ PyResult LSCService::Handle_GetChannels(PyCallArgs &call)
     cur = m_channels.begin();
     end = m_channels.end();
     for(; cur != end; cur++)
-        info.lines->AddItem( cur->second->EncodeChannel( call.client->GetCharacterID() ) );
+        info.lines->AddItem( cur->second->EncodeChannel( call.player->GetCharacterID() ) );
 
     return info.Encode();
 }
@@ -293,7 +293,7 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
 
     CallJoinChannels args;
     if (!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -313,21 +313,21 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
 
             if( prt->items.size() != 1 || !prt->items[0]->IsTuple() )
             {
-                codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                 continue;
             }
             prt = prt->items[0]->AsTuple();
 
             if( prt->items.size() != 2 || /* !prt->items[0]->IsString() || unnessecary */ !prt->items[1]->IsInt() )
             {
-                codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                 continue;
             }
             toJoin.insert( prt->items[1]->AsInt()->value() );
         }
         else
         {
-            codelog(SERVICE__ERROR, "%s: Bad argument ", call.client->GetName());
+            codelog(SERVICE__ERROR, "%s: Bad argument ", call.player->GetName());
             return NULL;
         }
     }
@@ -340,7 +340,7 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
     // allow joining to this channel if passwords match.
     // **************************
 
-    uint32 charID = call.client->GetCharacterID();
+    uint32 charID = call.player->GetCharacterID();
     // and now ensure the working of the system
     toJoin.insert( charID );
 
@@ -353,7 +353,7 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
     // Determine if the character is less than a month old
     // and, if so, then set a flag that causes joining this character to the Help\Help and
     // Help\Rookie channels.
-    const bool isRookie = Win32TimeNow() < ( call.client->GetChar()->createDateTime() + Win32Time_Month );
+    const bool isRookie = Win32TimeNow() < ( call.player->GetChar()->createDateTime() + Win32Time_Month );
 
     for( ; curs != ends; curs++ )
     {
@@ -369,7 +369,7 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
             else
                 channel = m_channels[ channelID ];
 
-            if( (!channel->IsJoined( charID )) && (channelID != call.client->GetCharacterID()) )
+            if( (!channel->IsJoined( charID )) && (channelID != call.player->GetCharacterID()) )
             {
                 ChannelJoinReply chjr;
 
@@ -381,12 +381,12 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
                 chjr.ChannelChars = channel->EncodeChannelChars();
                // chjr.ChannelChars = channel->EncodeEmptyChannelChars();
 
-                channel->JoinChannel( call.client );
+                channel->JoinChannel( call.player );
 
                 // Save this subscription to this channel to the database
                 if (!(m_db.IsChannelSubscribedByThisChar(charID, channel->GetChannelID())))
                     m_db.WriteNewChannelSubscriptionToDatabase( charID, channel->GetChannelID(),
-                        call.client->GetCorporationID(), call.client->GetAllianceID(),
+                        call.player->GetCorporationID(), call.player->GetAllianceID(),
                         2, 0 );     // the "extra" field is hard-coded
                                                                 // to '0' for now since I don't
                                                                 // know what it's used for
@@ -403,7 +403,7 @@ PyResult LSCService::Handle_JoinChannels(PyCallArgs &call) {
 PyResult LSCService::Handle_LeaveChannel(PyCallArgs &call) {
     CallLeaveChannel arg;
     if (!arg.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -423,7 +423,7 @@ PyResult LSCService::Handle_LeaveChannel(PyCallArgs &call) {
 
             if( prt->items.size() != 2 || !prt->GetItem( 1 )->IsInt() )
             {
-                codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                 return NULL;
             }
 
@@ -431,13 +431,13 @@ PyResult LSCService::Handle_LeaveChannel(PyCallArgs &call) {
         }
         else
         {
-            codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+            codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
             return NULL;
         }
     }
     else
     {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -446,8 +446,8 @@ PyResult LSCService::Handle_LeaveChannel(PyCallArgs &call) {
     {
         // Remove channel subscription from database if this character was subscribed to it.
         // NOTE: channel subscriptions are NOT saved to the database for private convo chats
-        if( m_db.IsChannelSubscribedByThisChar(call.client->GetCharacterID(),toLeave) )
-            m_db.RemoveChannelSubscriptionFromDatabase(toLeave,call.client->GetCharacterID());
+        if( m_db.IsChannelSubscribedByThisChar(call.player->GetCharacterID(),toLeave) )
+            m_db.RemoveChannelSubscriptionFromDatabase(toLeave,call.player->GetCharacterID());
 
         // Remove channel from database if this character was the last one
         // in the channel to leave and it was a private convo (temporary==1):
@@ -456,7 +456,7 @@ PyResult LSCService::Handle_LeaveChannel(PyCallArgs &call) {
             && (toLeave >= LSCService::BASE_CHANNEL_ID) )
                 m_db.RemoveChannelFromDatabase(toLeave);
 
-        m_channels[ toLeave ]->LeaveChannel( call.client );
+        m_channels[ toLeave ]->LeaveChannel( call.player );
     }
 
     return NULL;
@@ -494,7 +494,7 @@ PyResult LSCService::Handle_LeaveChannels(PyCallArgs &call) {
 
                 if( !prt->GetItem( 0 )->IsTuple() )
                 {
-                    codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                    codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                     continue;
                 }
                 prt = prt->GetItem( 0 )->AsTuple();
@@ -504,7 +504,7 @@ PyResult LSCService::Handle_LeaveChannels(PyCallArgs &call) {
 
                 if( prt->size() != 2 || !prt->GetItem( 1 )->IsInt() )
                 {
-                    codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                    codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                     continue;
                 }
 
@@ -512,7 +512,7 @@ PyResult LSCService::Handle_LeaveChannels(PyCallArgs &call) {
             }
             else
             {
-                codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                 continue;
             }
         }
@@ -525,8 +525,8 @@ PyResult LSCService::Handle_LeaveChannels(PyCallArgs &call) {
             {
                 // Remove channel subscription from database if this character was subscribed to it.
                 // NOTE: channel subscriptions are NOT saved to the database for private convo chats
-                if( m_db.IsChannelSubscribedByThisChar(call.client->GetCharacterID(),*cur))
-                    m_db.RemoveChannelSubscriptionFromDatabase(*cur,call.client->GetCharacterID() );
+                if( m_db.IsChannelSubscribedByThisChar(call.player->GetCharacterID(),*cur))
+                    m_db.RemoveChannelSubscriptionFromDatabase(*cur,call.player->GetCharacterID() );
 
                 // Remove channel from database if this character was the last one
                 // in the channel to leave and it was a private convo (temporary==1):
@@ -535,7 +535,7 @@ PyResult LSCService::Handle_LeaveChannels(PyCallArgs &call) {
                     && (m_channels.find( *cur )->second->GetChannelID() >= LSCService::BASE_CHANNEL_ID) )
                         m_db.RemoveChannelFromDatabase(*cur);
 
-                m_channels[*cur]->LeaveChannel(call.client);
+                m_channels[*cur]->LeaveChannel(call.player);
             }
         }
     }
@@ -568,7 +568,7 @@ PyResult LSCService::Handle_CreateChannel( PyCallArgs& call )
 
     if( !name.Decode( call.tuple ) )
     {
-        sLog.Error( "LSCService", "%s: Invalid arguments", call.client->GetName() );
+        sLog.Error( "LSCService", "%s: Invalid arguments", call.player->GetName() );
         return NULL;
     }
 
@@ -609,29 +609,29 @@ PyResult LSCService::Handle_CreateChannel( PyCallArgs& call )
             channel = CreateChannel( name.arg.c_str() );
         else
         {
-            sLog.Error( "LSCService", "%s: Error creating new chat channel: channel name '%s' already exists.", call.client->GetName(), name.arg.c_str() );
+            sLog.Error( "LSCService", "%s: Error creating new chat channel: channel name '%s' already exists.", call.player->GetName(), name.arg.c_str() );
             channel = NULL;
         }
 
         if (channel == NULL)
         {
-            sLog.Error( "LSCService", "%s: Error creating new chat channel", call.client->GetName() );
+            sLog.Error( "LSCService", "%s: Error creating new chat channel", call.player->GetName() );
             return NULL;
         }
 
         // Save channel info and channel subscription to the database
-        m_db.WriteNewChannelToDatabase(channel->GetChannelID(),channel->GetDisplayName(), call.client->GetCharacterID(),0,cmode);
-        m_db.WriteNewChannelSubscriptionToDatabase( call.client->GetCharacterID(), channel->GetChannelID(),
-            call.client->GetCorporationID(), call.client->GetAllianceID(),
+        m_db.WriteNewChannelToDatabase(channel->GetChannelID(),channel->GetDisplayName(), call.player->GetCharacterID(),0,cmode);
+        m_db.WriteNewChannelSubscriptionToDatabase( call.player->GetCharacterID(), channel->GetChannelID(),
+            call.player->GetCorporationID(), call.player->GetAllianceID(),
             2, 0 );     // the "extra" field is hard-coded
                                                     // to '0' for now since I don't
                                                     // know what it's used for
 
-        channel->JoinChannel( call.client );
+        channel->JoinChannel( call.player );
 
         ChannelCreateReply reply;
         reply.ChannelChars = channel->EncodeChannelChars();
-        reply.ChannelInfo = channel->EncodeChannelSmall( call.client->GetCharacterID() );
+        reply.ChannelInfo = channel->EncodeChannelSmall( call.player->GetCharacterID() );
         reply.ChannelMods = channel->EncodeChannelMods();
         return reply.Encode();
     }
@@ -669,13 +669,13 @@ PyResult LSCService::Handle_CreateChannel( PyCallArgs& call )
 
             if (channel == NULL)
             {
-                sLog.Error( "LSCService", "%s: Error creating new chat channel", call.client->GetName() );
+                sLog.Error( "LSCService", "%s: Error creating new chat channel", call.player->GetName() );
                 return NULL;
             }
         }
         else
         {
-            sLog.Error( "LSCService", "%s: Unable to join channel '%s', this channel does not exist.", call.client->GetName(), channel_name.c_str() );
+            sLog.Error( "LSCService", "%s: Unable to join channel '%s', this channel does not exist.", call.player->GetName(), channel_name.c_str() );
             return NULL;
         }
     }
@@ -694,7 +694,7 @@ PyResult LSCService::Handle_CreateChannel( PyCallArgs& call )
             "",
             LSCChannel::normal,
             "",
-            call.client->GetCharacterID(),
+            call.player->GetCharacterID(),
             false,
             "",
             false,
@@ -705,47 +705,47 @@ PyResult LSCService::Handle_CreateChannel( PyCallArgs& call )
 
         if (channel == NULL)
         {
-            sLog.Error( "LSCService", "%s: Error creating new Temporary chat channel", call.client->GetName() );
+            sLog.Error( "LSCService", "%s: Error creating new Temporary chat channel", call.player->GetName() );
             return NULL;
         }
 
         // Save this channel to the database with the 'temporary' field marked as 1 so that when the last character
         // leaves this channel, the server knows to remove it from the database:
-        m_db.WriteNewChannelToDatabase(channel_id,call.tuple->GetItem(0)->AsString()->content(),call.client->GetCharacterID(),1,cmode);
+        m_db.WriteNewChannelToDatabase(channel_id,call.tuple->GetItem(0)->AsString()->content(),call.player->GetCharacterID(),1,cmode);
     }
 
 
     if ((joinExisting_exists && joinExisting_channel) || (temporary_exists && temporary_channel))
     {
         // Now that channel is created, join it:
-        if( !channel->IsJoined( call.client->GetCharacterID() ) )
+        if( !channel->IsJoined( call.player->GetCharacterID() ) )
         {
             // Save this subscription to this channel to the database IF it is not temporary:
             if (channel->GetTemporary() == 0)
-                m_db.WriteNewChannelSubscriptionToDatabase( call.client->GetCharacterID(), channel->GetChannelID(),
-                    call.client->GetCorporationID(), call.client->GetAllianceID(),
+                m_db.WriteNewChannelSubscriptionToDatabase( call.player->GetCharacterID(), channel->GetChannelID(),
+                    call.player->GetCorporationID(), call.player->GetAllianceID(),
                     2, 0 );     // the "extra" field is hard-coded
                                                             // to '0' for now since I don't
                                                             // know what it's used for
 
-            channel->JoinChannel( call.client );
+            channel->JoinChannel( call.player );
 
             ChannelCreateReply reply;
             reply.ChannelChars = channel->EncodeChannelChars();
-            reply.ChannelInfo = channel->EncodeChannelSmall( call.client->GetCharacterID() );
+            reply.ChannelInfo = channel->EncodeChannelSmall( call.player->GetCharacterID() );
             reply.ChannelMods = channel->EncodeChannelMods();
             return reply.Encode();
         }
 
         // Somehow execution got here and was not captured in either Creating a new channel, Joining a temporary channel,
         // or Joining an existing channel, so print an error:
-        sLog.Error( "LSCService", "%s: ERROR: Character %u tried to join/create channel '%s'.  The packet format was unexpected.", call.client->GetName(), call.client->GetCharacterID(), channel->GetDisplayName().c_str() );
+        sLog.Error( "LSCService", "%s: ERROR: Character %u tried to join/create channel '%s'.  The packet format was unexpected.", call.player->GetName(), call.player->GetCharacterID(), channel->GetDisplayName().c_str() );
         return NULL;
     }
     else
     {
         // Malformed packet somehow / no "create" field in byname map
-        sLog.Error( "LSCService", "%s: Malformed packet: 'create' field in byname map is missing.", call.client->GetName() );
+        sLog.Error( "LSCService", "%s: Malformed packet: 'create' field in byname map is missing.", call.player->GetName() );
         return NULL;
     }
 }
@@ -771,14 +771,14 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
         channel_id = call.tuple->AsTuple()->GetItem(0)->AsInt()->value();
     else
     {
-        sLog.Error( "LSCService", "%s: Tuple contained wrong type: '%s'", call.client->GetName(), call.tuple->TypeString() );
+        sLog.Error( "LSCService", "%s: Tuple contained wrong type: '%s'", call.player->GetName(), call.tuple->TypeString() );
         return NULL;
     }
 
     // Get count of parameters or just loop through the std::map until you've reached the end
     if (call.byname.size() == 0)
     {
-        sLog.Error( "LSCService", "%s: byname std::map contained zero elements, expected at least one.", call.client->GetName() );
+        sLog.Error( "LSCService", "%s: byname std::map contained zero elements, expected at least one.", call.player->GetName() );
         return NULL;
     }
 
@@ -786,7 +786,7 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
     std::map<uint32, LSCChannel*>::iterator res = m_channels.find( channel_id );
     if( m_channels.end() == res )
     {
-        sLog.Error( "LSCService", "%s: Handle_Configure Couldn't find channel %u", call.client->GetName(), channel_id );
+        sLog.Error( "LSCService", "%s: Handle_Configure Couldn't find channel %u", call.player->GetName(), channel_id );
         return NULL;
     }
 
@@ -809,7 +809,7 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
         }
         else
         {
-            sLog.Error( "LSCService", "%s: displayName contained wrong type: '%s'", call.client->GetName(), call.byname.find("displayName")->second->TypeString() );
+            sLog.Error( "LSCService", "%s: displayName contained wrong type: '%s'", call.player->GetName(), call.byname.find("displayName")->second->TypeString() );
             return NULL;
         }
     }
@@ -824,7 +824,7 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
         }
         else
         {
-            sLog.Error( "LSCService", "%s: memberless contained wrong type: '%s'", call.client->GetName(), call.byname.find("memberless")->second->TypeString() );
+            sLog.Error( "LSCService", "%s: memberless contained wrong type: '%s'", call.player->GetName(), call.byname.find("memberless")->second->TypeString() );
             return NULL;
         }
     }
@@ -839,7 +839,7 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
         }
         else
         {
-            sLog.Error( "LSCService", "%s: motd contained wrong type: '%s'", call.client->GetName(), call.byname.find("motd")->second->TypeString() );
+            sLog.Error( "LSCService", "%s: motd contained wrong type: '%s'", call.player->GetName(), call.byname.find("motd")->second->TypeString() );
             return NULL;
         }
     }
@@ -862,14 +862,14 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
                     }
                     else
                     {
-                        sLog.Error( "LSCService", "%s: newPassword contained wrong type: '%s'", call.client->GetName(), call.byname.find("newPassword")->second->TypeString() );
+                        sLog.Error( "LSCService", "%s: newPassword contained wrong type: '%s'", call.player->GetName(), call.byname.find("newPassword")->second->TypeString() );
                         return NULL;
                     }
                 }
             }
             else
             {
-                sLog.Error( "LSCService", "%s: incorrect oldPassword supplied. Password NOT changed.", call.client->GetName() );
+                sLog.Error( "LSCService", "%s: incorrect oldPassword supplied. Password NOT changed.", call.player->GetName() );
                 return NULL;
             }
         }
@@ -885,14 +885,14 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
                 }
                 else
                 {
-                    sLog.Error( "LSCService", "%s: newPassword contained wrong type: '%s'", call.client->GetName(), call.byname.find("newPassword")->second->TypeString() );
+                    sLog.Error( "LSCService", "%s: newPassword contained wrong type: '%s'", call.player->GetName(), call.byname.find("newPassword")->second->TypeString() );
                     return NULL;
                 }
             }
         }
         else
         {
-            sLog.Error( "LSCService", "%s: oldPassword is of an unexpected type: '%s'", call.client->GetName(), call.byname.find("newPassword")->second->TypeString() );
+            sLog.Error( "LSCService", "%s: oldPassword is of an unexpected type: '%s'", call.player->GetName(), call.byname.find("newPassword")->second->TypeString() );
             return NULL;
         }
     }
@@ -909,7 +909,7 @@ PyResult LSCService::Handle_Configure( PyCallArgs& call )
     // any other client attached to this channel.
     ChannelCreateReply reply;
     reply.ChannelChars = channel->EncodeChannelChars();
-    reply.ChannelInfo = channel->EncodeChannelSmall( call.client->GetCharacterID() );
+    reply.ChannelInfo = channel->EncodeChannelSmall( call.player->GetCharacterID() );
     reply.ChannelMods = channel->EncodeChannelMods();
     return reply.Encode();
 }
@@ -920,14 +920,14 @@ PyResult LSCService::Handle_DestroyChannel( PyCallArgs& call )
     Call_SingleIntegerArg arg;
     if( !arg.Decode( call.tuple ) )
     {
-        sLog.Error( "LSCService", "%s: Invalid arguments", call.client->GetName() );
+        sLog.Error( "LSCService", "%s: Invalid arguments", call.player->GetName() );
         return NULL;
     }
 
     std::map<uint32, LSCChannel*>::iterator res = m_channels.find( arg.arg );
     if( m_channels.end() == res )
     {
-        sLog.Error( "LSCService", "%s: Couldn't find channel %u", call.client->GetName(), arg.arg );
+        sLog.Error( "LSCService", "%s: Couldn't find channel %u", call.player->GetName(), arg.arg );
         return NULL;
     }
 
@@ -941,7 +941,7 @@ PyResult LSCService::Handle_DestroyChannel( PyCallArgs& call )
     m_db.RemoveChannelFromDatabase( res->second->GetChannelID() );
 
     // Finally, remove the channel from the server dynamic objects:
-    res->second->Evacuate( call.client );
+    res->second->Evacuate( call.player );
     SafeDelete( res->second );
     m_channels.erase( res );
 
@@ -991,7 +991,7 @@ PyResult LSCService::Handle_SendMessage( PyCallArgs& call )
         // Decode All system (local, corp, region, etc) chat channel messages here:
         if( !args.Decode( call.tuple ) )
         {
-            sLog.Error( "LSCService", "%s: Invalid arguments", call.client->GetName() );
+            sLog.Error( "LSCService", "%s: Invalid arguments", call.player->GetName() );
             return NULL;
         }
         channel_id = args.channel.id;
@@ -1002,11 +1002,11 @@ PyResult LSCService::Handle_SendMessage( PyCallArgs& call )
     std::map<uint32, LSCChannel*>::iterator res = m_channels.find( channel_id );
     if( m_channels.end() == res )
     {
-        sLog.Error( "LSCService", "%s: Couldn't find channel %u", call.client->GetName(), channel_id );
+        sLog.Error( "LSCService", "%s: Couldn't find channel %u", call.player->GetName(), channel_id );
         return NULL;
     }
 
-	std::string CIC_test_name = "CIC - " + std::string(call.client->GetName());
+	std::string CIC_test_name = "CIC - " + std::string(call.player->GetName());
 	if( (message.substr(0,3) == "pcs") && (res->second->GetDisplayName() == CIC_test_name) )
 	{
         sLog.Debug( "LSCService::Handle_SendMessage()", "CALL to Player Command System via LSC Service, baby!" );
@@ -1029,12 +1029,12 @@ PyResult LSCService::Handle_SendMessage( PyCallArgs& call )
         sLog.Debug( "LSCService::Handle_SendMessage()", "CALL to SlashService->SlashCmd() via LSC Service, baby!" );
 
         if( m_manager->LookupService("slash") != NULL )
-            static_cast<SlashService *>(m_manager->LookupService("slash"))->SlashCommand( call.client, message );
+            static_cast<SlashService *>(m_manager->LookupService("slash"))->SlashCommand( call.player, message );
 
         message = " ";      // Still transmit some message but minimal so that chat window is not "locked" by client for not getting a chat
     }
 
-    res->second->SendMessage( call.client, message.c_str() );
+    res->second->SendMessage( call.player, message.c_str() );
 
     return new PyInt( 1 );
 }
@@ -1086,7 +1086,7 @@ PyResult LSCService::Handle_Invite(PyCallArgs &call)
     LSCChannel *channel;
 
     uint32 channel_ID;
-    uint32 char_ID = call.client->GetCharacterID();
+    uint32 char_ID = call.player->GetCharacterID();
     uint32 invited_char_ID;
 
     // Decode the call:
@@ -1096,7 +1096,7 @@ PyResult LSCService::Handle_Invite(PyCallArgs &call)
             channel_ID = call.tuple->GetItem(1)->AsInt()->value();
         else
         {
-            sLog.Error( "LSCService", "%s: call.tuple->GetItem(1) is of the wrong type: '%s'.  Expected PyInt type.", call.client->GetName(), call.tuple->TypeString() );
+            sLog.Error( "LSCService", "%s: call.tuple->GetItem(1) is of the wrong type: '%s'.  Expected PyInt type.", call.player->GetName(), call.tuple->TypeString() );
             return NULL;
         }
 
@@ -1104,13 +1104,13 @@ PyResult LSCService::Handle_Invite(PyCallArgs &call)
             invited_char_ID = call.tuple->GetItem(0)->AsInt()->value();
         else
         {
-            sLog.Error( "LSCService", "%s: call.tuple->GetItem(0) is of the wrong type: '%s'.  Expected PyInt type.", call.client->GetName(), call.tuple->TypeString() );
+            sLog.Error( "LSCService", "%s: call.tuple->GetItem(0) is of the wrong type: '%s'.  Expected PyInt type.", call.player->GetName(), call.tuple->TypeString() );
             return NULL;
         }
     }
     else
     {
-        sLog.Error( "LSCService", "%s: call.tuple is of the wrong type: '%s'.  Expected PyTuple type.", call.client->GetName(), call.tuple->TypeString() );
+        sLog.Error( "LSCService", "%s: call.tuple is of the wrong type: '%s'.  Expected PyTuple type.", call.player->GetName(), call.tuple->TypeString() );
         return NULL;
     }
 
@@ -1160,13 +1160,13 @@ PyResult LSCService::Handle_Invite(PyCallArgs &call)
         }
         else
         {
-            sLog.Error( "LSCService", "%s: Character %u is already joined to channel %u.", call.client->GetName(), invited_char_ID, channel_ID );
+            sLog.Error( "LSCService", "%s: Character %u is already joined to channel %u.", call.player->GetName(), invited_char_ID, channel_ID );
             return NULL;
         }
     }
     else
     {
-        sLog.Error( "LSCService", "%s: Cannot find channel %u.", call.client->GetName(), channel_ID );
+        sLog.Error( "LSCService", "%s: Cannot find channel %u.", call.player->GetName(), channel_ID );
         return NULL;
     }
 
@@ -1181,14 +1181,14 @@ PyResult LSCService::Handle_Invite(PyCallArgs &call)
 ///////////////////////////////////////////////////////////////////////////////
 
 PyResult LSCService::Handle_GetMyMessages(PyCallArgs &call) {
-    return(m_db.GetMailHeaders(call.client->GetCharacterID()));
+    return(m_db.GetMailHeaders(call.player->GetCharacterID()));
 }
 
 
 PyResult LSCService::Handle_GetMessageDetails(PyCallArgs &call) {
     Call_TwoIntegerArgs args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -1201,13 +1201,13 @@ PyResult LSCService::Handle_GetMessageDetails(PyCallArgs &call) {
 PyResult LSCService::Handle_Page(PyCallArgs &call) {
     Call_Page args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
-    _log(SERVICE__MESSAGE, "%s: Received evemail msg with subject '%s': %s", call.client->GetName(), args.subject.c_str(), args.body.c_str());
+    _log(SERVICE__MESSAGE, "%s: Received evemail msg with subject '%s': %s", call.player->GetName(), args.subject.c_str(), args.body.c_str());
 
-    SendMail(call.client->GetCharacterID(), args.recipients, args.subject, args.body);
+    SendMail(call.player->GetCharacterID(), args.recipients, args.subject, args.body);
 
     return NULL;
 }
@@ -1273,7 +1273,7 @@ void Player::SelfEveMail( const char* subject, const char* fmt, ... )
 PyResult LSCService::Handle_MarkMessagesRead(PyCallArgs &call) {
     Call_SingleIntList args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -1290,12 +1290,12 @@ PyResult LSCService::Handle_MarkMessagesRead(PyCallArgs &call) {
 PyResult LSCService::Handle_DeleteMessages(PyCallArgs &call) {
     Call_DeleteMessages args;
     if(!args.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
-    if(args.channelID != (int32)call.client->GetCharacterID()) {
-        _log(SERVICE__ERROR, "%s (%d) tried to delete messages in channel %u. Denied.", call.client->GetName(), call.client->GetCharacterID(), args.channelID);
+    if(args.channelID != (int32)call.player->GetCharacterID()) {
+        _log(SERVICE__ERROR, "%s (%d) tried to delete messages in channel %u. Denied.", call.player->GetName(), call.player->GetCharacterID(), args.channelID);
         return NULL;
     }
 
@@ -1313,7 +1313,7 @@ PyResult LSCService::Handle_DeleteMessages(PyCallArgs &call) {
 PyResult LSCService::Handle_GetMembers(PyCallArgs &call) {
     CallGetMembers arg;
     if (!arg.Decode(&call.tuple)) {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 
@@ -1332,7 +1332,7 @@ PyResult LSCService::Handle_GetMembers(PyCallArgs &call) {
 
             if( prt->items.size() != 2 || !prt->GetItem( 1 )->IsInt() )
             {
-                codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+                codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
                 return NULL;
             }
 
@@ -1340,13 +1340,13 @@ PyResult LSCService::Handle_GetMembers(PyCallArgs &call) {
         }
         else
         {
-            codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+            codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
             return NULL;
         }
     }
     else
     {
-        codelog(SERVICE__ERROR, "%s: Bad arguments", call.client->GetName());
+        codelog(SERVICE__ERROR, "%s: Bad arguments", call.player->GetName());
         return NULL;
     }
 

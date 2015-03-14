@@ -11,7 +11,7 @@ class PyServiceMgr;
 class CommandDispatcher {
 public:
     //this is the prototype for a command function:
-    typedef PyResult (*CommandFunc)(Player *who, CommandDB *db, PyServiceMgr *services, const Seperator &args);
+    typedef PyResult (*CommandFunc)(Player *who, DBcore *db, CommandDB *command_db, PyServiceMgr *services, const Seperator &args);
 
     class CommandRecord {
     public:
@@ -24,7 +24,7 @@ public:
         CommandFunc function;
     };
 
-    CommandDispatcher(PyServiceMgr &services);
+    CommandDispatcher(PyServiceMgr &services, DBcore &db);
     virtual ~CommandDispatcher();
 
     PyResult Execute(Player *from, const char *msg);
@@ -33,7 +33,8 @@ public:
 
 protected:
     PyServiceMgr &m_services;
-    CommandDB m_db;
+	DBcore &m_db;
+    CommandDB command_db;
 
     std::map<std::string, CommandRecord *> m_commands;    //we own these pointers
 };

@@ -144,8 +144,8 @@ bool BookmarkService::LookupBookmark(uint32 characterID, uint32 bookmarkID, uint
 PyResult BookmarkService::Handle_GetBookmarks(PyCallArgs &call) {
     PyTuple* result = new PyTuple(2);
 
-    result->items[0] = m_db.GetBookmarks(call.client->GetCharacterID());
-    result->items[1] = m_db.GetFolders(call.client->GetCharacterID());
+    result->items[0] = m_db.GetBookmarks(call.player->GetCharacterID());
+    result->items[1] = m_db.GetFolders(call.player->GetCharacterID());
 
     return result;
 }
@@ -163,7 +163,7 @@ PyResult BookmarkService::Handle_BookmarkLocation(PyCallArgs &call)
     uint64 created = 0;
     uint32 locationID = 0;
     uint32 typeCheck = 0;
-    uint32 creatorID = call.client->GetCharacterID();       //  will need more research when trade is implemented for sharing bm's between chars....corp/friend/etc.  this should be the original characterID that made the bm.
+    uint32 creatorID = call.player->GetCharacterID();       //  will need more research when trade is implemented for sharing bm's between chars....corp/friend/etc.  this should be the original characterID that made the bm.
     uint32 folderID = 0;
     GPoint point;
 
@@ -194,13 +194,13 @@ PyResult BookmarkService::Handle_BookmarkLocation(PyCallArgs &call)
 
     if ( typeCheck >= 140000000 )      // entity #'s above 140m are player-owned
     {
-        point = call.client->GetPosition();       // Get x,y,z location.  bm type is coordinate as "spot in xxx system"
-        locationID = call.client->GetLocationID();       // locationID of bm is current sol system
+        point = call.player->GetPosition();       // Get x,y,z location.  bm type is coordinate as "spot in xxx system"
+        locationID = call.player->GetLocationID();       // locationID of bm is current sol system
         itemID = locationID;      //  locationID = itemID for coord bm.  shows jumps, s/c/r in bm window, green in system
     }else if (typeID == 2502){  // typeCheck is not player-owned...maybe char is in station.  make station as bm
         point.x, point.y, point.z = 0, 0, 0;      // no x,y,z location.  bm type is station
         itemID =  call.tuple->GetItem( 0 )->AsInt()->value();  // this is stationID
-        locationID = call.client->GetSystemID();       // get sol system of current station
+        locationID = call.player->GetSystemID();       // get sol system of current station
     }else{      // char is passing systemID from map.  char is marking a solar systemID for bm
         point.x, point.y, point.z = 0, 0, 0;      // no x,y,z location.  bm type is solar system
         locationID = call.tuple->GetItem( 0 )->AsInt()->value();  // this is systemID from map
@@ -214,7 +214,7 @@ PyResult BookmarkService::Handle_BookmarkLocation(PyCallArgs &call)
         memo = call.tuple->GetItem( 2 )->AsWString()->content();
     else
     {
-        sLog.Error( "BookmarkService::Handle_BookmarkLocation()", "%s: call.tuple->GetItem(2) is of the wrong type: '%s'.  Expected PyString or PyWString type.", call.client->GetName(), call.tuple->GetItem(2)->TypeString() );
+        sLog.Error( "BookmarkService::Handle_BookmarkLocation()", "%s: call.tuple->GetItem(2) is of the wrong type: '%s'.  Expected PyString or PyWString type.", call.player->GetName(), call.tuple->GetItem(2)->TypeString() );
         return NULL;
     }
 
@@ -224,7 +224,7 @@ PyResult BookmarkService::Handle_BookmarkLocation(PyCallArgs &call)
         note = call.tuple->GetItem( 3 )->AsWString()->content();
     else
     {
-        sLog.Error( "BookmarkService::Handle_BookmarkLocation()", "%s: call.tuple->GetItem(3) is of the wrong type: '%s'.  Expected PyString or PyWString type.", call.client->GetName(), call.tuple->GetItem(3)->TypeString() );
+        sLog.Error( "BookmarkService::Handle_BookmarkLocation()", "%s: call.tuple->GetItem(3) is of the wrong type: '%s'.  Expected PyString or PyWString type.", call.player->GetName(), call.tuple->GetItem(3)->TypeString() );
         return NULL;
     }
 
@@ -299,9 +299,9 @@ PyResult BookmarkService::Handle_DeleteBookmarks(PyCallArgs &call)          //no
               bookmarkIDs.push_back( bookmarkID );
           }
 
-          m_db.DeleteBookmarksFromDatabase( call.client->GetCharacterID(),&bookmarkIDs );
+          m_db.DeleteBookmarksFromDatabase( call.player->GetCharacterID(),&bookmarkIDs );
       }else{
-          sLog.Error( "BookmarkService::Handle_DeleteBookmarks()", "%s: call.tuple->GetItem( 0 )->AsList()->size() == 0.  Expected size >= 1.", call.client->GetName() );
+          sLog.Error( "BookmarkService::Handle_DeleteBookmarks()", "%s: call.tuple->GetItem( 0 )->AsList()->size() == 0.  Expected size >= 1.", call.player->GetName() );
           return NULL;
       }
     }else if(call.tuple->IsTuple())
@@ -324,8 +324,8 @@ PyResult BookmarkService::Handle_DeleteBookmarks(PyCallArgs &call)          //no
 
     PyTuple* result = new PyTuple(2);
 
-    result->items[0] = m_db.GetBookmarks(call.client->GetCharacterID());
-    result->items[1] = m_db.GetFolders(call.client->GetCharacterID());
+    result->items[0] = m_db.GetBookmarks(call.player->GetCharacterID());
+    result->items[1] = m_db.GetFolders(call.player->GetCharacterID());
 
     return result;
 }
@@ -353,7 +353,7 @@ PyResult BookmarkService::Handle_UpdateBookmark(PyCallArgs &call)       // worki
     // bookmarkID = call.tuple->GetItem( 0 )->AsInt()->value()
     if ( !(call.tuple->GetItem( 0 )->IsInt()) )
     {
-        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.tuple->GetItem( 0 ) is of the wrong type: '%s'.  Expected PyInt type.", call.client->GetName(), call.tuple->GetItem( 0 )->TypeString() );
+        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.tuple->GetItem( 0 ) is of the wrong type: '%s'.  Expected PyInt type.", call.player->GetName(), call.tuple->GetItem( 0 )->TypeString() );
         return NULL;
     }
     else
@@ -362,7 +362,7 @@ PyResult BookmarkService::Handle_UpdateBookmark(PyCallArgs &call)       // worki
     // memo = call.tuple->GetItem( 3 )->AsWString()->content()
     if ( !(call.tuple->GetItem( 3 )->IsWString()) )
     {
-        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.tuple->GetItem( 3 ) is of the wrong type: '%s'.  Expected PyWString type.", call.client->GetName(), call.tuple->GetItem( 3 )->TypeString() );
+        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.tuple->GetItem( 3 ) is of the wrong type: '%s'.  Expected PyWString type.", call.player->GetName(), call.tuple->GetItem( 3 )->TypeString() );
         return NULL;
     }
     else
@@ -373,7 +373,7 @@ PyResult BookmarkService::Handle_UpdateBookmark(PyCallArgs &call)       // worki
     //newNote = call.byname.find("note")->second->AsString() when note == ""
     if( call.byname.find("note") == call.byname.end() )
     {
-        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.byname.find(\"note\") could not be found.", call.client->GetName() );
+        sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.byname.find(\"note\") could not be found.", call.player->GetName() );
         return NULL;
     }
     else
@@ -384,7 +384,7 @@ PyResult BookmarkService::Handle_UpdateBookmark(PyCallArgs &call)       // worki
             newNote = call.byname.find("note")->second->AsString()->content();
         else
         {
-            sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.byname.find(\"note\")->second is of the wrong type: '%s'.  Expected PyWString or PyString type.", call.client->GetName(), call.byname.find("note")->second->TypeString() );
+            sLog.Error( "BookmarkService::Handle_UpdateBookmark()", "%s: call.byname.find(\"note\")->second is of the wrong type: '%s'.  Expected PyWString or PyString type.", call.player->GetName(), call.byname.find("note")->second->TypeString() );
             return NULL;
         }
     }
@@ -407,7 +407,7 @@ PyResult BookmarkService::Handle_UpdateBookmark(PyCallArgs &call)       // worki
         folderID
     );
 
-    m_db.UpdateBookmarkInDatabase(bookmarkID,call.client->GetCharacterID(),newMemo,newNote);
+    m_db.UpdateBookmarkInDatabase(bookmarkID,call.player->GetCharacterID(),newMemo,newNote);
 
     PyTuple* res = NULL;
 
@@ -431,7 +431,7 @@ PyResult BookmarkService::Handle_CreateFolder(PyCallArgs &call)     // working
 {
     uint32 folderID = GetNextAvailableFolderID();
     std::string folderName = call.tuple->GetItem( 0 )->AsWString()->content();
-    uint32 ownerID = call.client->GetCharacterID();
+    uint32 ownerID = call.player->GetCharacterID();
     uint32 creatorID = ownerID;
 
     m_db.SaveNewFolderToDatabase
@@ -452,7 +452,7 @@ PyResult BookmarkService::Handle_UpdateFolder(PyCallArgs &call)     // working
 {
     uint32 folderID =  call.tuple->GetItem( 0 )->AsInt()->value();
     std::string folderName = call.tuple->GetItem( 1 )->AsWString()->content();
-    uint32 ownerID = call.client->GetCharacterID();
+    uint32 ownerID = call.player->GetCharacterID();
     uint32 creatorID = ownerID;
 
     m_db.UpdateFolderInDatabase
@@ -481,7 +481,7 @@ PyResult BookmarkService::Handle_UpdateFolder(PyCallArgs &call)     // working
 PyResult BookmarkService::Handle_DeleteFolder(PyCallArgs &call)     // working
 {
     uint32 folderID =  call.tuple->GetItem( 0 )->AsInt()->value();
-    uint32 ownerID = call.client->GetCharacterID();
+    uint32 ownerID = call.player->GetCharacterID();
 
     m_db.DeleteFolderFromDatabase
     (

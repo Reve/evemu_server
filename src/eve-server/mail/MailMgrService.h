@@ -23,8 +23,8 @@
     Author:        Luck, caytchen
 */
 
-#ifndef MAIL_MGR_SERIVCE_H
-#define MAIL_MGR_SERVICE_H
+#ifndef __MAILMGR_SERIVCE_H_INCL
+#define __MAILMGR_SERIVCE_H_INCL
 
 #include "PyService.h"
 

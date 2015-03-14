@@ -32,18 +32,23 @@
 #include "imageserver/ImageServer.h"
 
 long Client::nextID = 0;
+static const uint32 PING_INTERVAL_US = 60000;
 
-Client::Client(EVETCPConnection **con):
+Client::Client(EVETCPConnection **con, ItemFactory &item_factory):
 	// EVEConnection should be in here
 	EVEClientSession(con),
 	m_clientList(ClientList::get()),
 	m_db(DBcore()),
 	m_liveUpdate(m_db),
 	m_clientDB(m_db),
-	services(NULL)
+	m_services( 888444, sEntityList, item_factory),
+	iFactory(item_factory),
+	player(new Player(this, m_services)),
+	m_pingTimer(PING_INTERVAL_US)
 {
 	//get unique id for this class
 	id = ++nextID;
+	m_pingTimer.Start();
 
 	//create a connection to the database
 	DBerror err;
@@ -56,6 +61,9 @@ Client::Client(EVETCPConnection **con):
 	{
 		sLog.Error( "client init", "Unable to connect to the database: %s", err.c_str() );
 	}
+
+	// Start handshake
+	Reset();
 }
 
 Client::~Client(void)
@@ -78,6 +86,7 @@ void Client::Disconnect()
 void Client::Process()
 {
 	ProcessNet();
+	m_services.Process();
 }
 
 bool Client::ProcessNet()
@@ -334,13 +343,13 @@ bool Client::Handle_CallReq( PyPacket* packet, PyCallStream& req )
 			return false;
 		}
 
-		if( nodeID != services.GetNodeID() )
+		if( nodeID != m_services.GetNodeID() )
 		{
-			sLog.Error("Client","Unknown nodeID %u received (expected %u).", nodeID, services.GetNodeID());
+			sLog.Error("Client","Unknown nodeID %u received (expected %u).", nodeID, m_services.GetNodeID());
 			return false;
 		}
 
-		dest = services.FindBoundObject( bindID );
+		dest = m_services.FindBoundObject( bindID );
 		if( dest == NULL )
 		{
 			sLog.Error("Client", "Failed to find bound object %u.", bindID);
@@ -350,7 +359,7 @@ bool Client::Handle_CallReq( PyPacket* packet, PyCallStream& req )
 	else
 	{
 		//service
-		dest = services.LookupService( packet->dest.service );
+		dest = m_services.LookupService( packet->dest.service );
 		if( dest == NULL )
 		{
 			sLog.Error("Client","Unable to find service to handle call to: %s", packet->dest.service.c_str());
@@ -369,7 +378,7 @@ bool Client::Handle_CallReq( PyPacket* packet, PyCallStream& req )
 		sLog.Log("Server", "%s call made to %s",req.method.c_str(),packet->dest.service.c_str());
 
 	//build arguments
-	PyCallArgs args( this, req.arg_tuple, req.arg_dict );
+	PyCallArgs args( this, player, req.arg_tuple, req.arg_dict );
 
 	//parts of call may be consumed here
 	PyResult result = dest->Call( req.method, args );
@@ -411,13 +420,13 @@ bool Client::Handle_Notify( PyPacket* packet )
 				continue;
 			}
 
-			if(nodeID != services.GetNodeID()) {
+			if(nodeID != m_services.GetNodeID()) {
 				sLog.Error("Client","Notification '%s' from %s: Unknown nodeID %u received (expected %u). Skipping.",
-					notify.method.c_str(), GetName(), nodeID, services.GetNodeID());
+					notify.method.c_str(), GetName(), nodeID, m_services.GetNodeID());
 				continue;
 			}
 
-			services.ClearBoundObject(bindID);
+			m_services.ClearBoundObject(bindID);
 		}
 	}
 	else
@@ -430,89 +439,252 @@ bool Client::Handle_Notify( PyPacket* packet )
 	return true;
 }
 
+void Client::_SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel )
+{
+	//build the packet:
+	PyPacket* p = new PyPacket;
+	p->type_string = "macho.CallRsp";
+	p->type = CALL_RSP;
+
+	p->source = source;
+
+	p->dest.type = PyAddress::Client;
+	p->dest.typeID = GetAccountID();
+	p->dest.callID = callID;
+
+	p->userid = GetAccountID();
+
+	p->payload = new PyTuple(1);
+	p->payload->SetItem( 0, new PySubStream( *return_value ) );
+	*return_value = NULL;   //consumed
+
+	if(channel != NULL)
+	{
+		p->named_payload = new PyDict();
+		p->named_payload->SetItemString( "channel", new PyString( channel ) );
+	}
+
+	FastQueuePacket( &p );
+}
+
+void Client::_SendSessionChange()
+{
+    if( !mSession.isDirty() )
+        return;
+
+    SessionChangeNotification scn;
+    scn.changes = new PyDict;
+
+    mSession.EncodeChanges( scn.changes );
+    if( scn.changes->empty() )
+        return;
+
+    sLog.Log("Client","Session updated, sending session change");
+    scn.changes->Dump(CLIENT__SESSION, "  Changes: ");
+
+    //this is probably not necessary...
+    scn.nodesOfInterest.push_back( services().GetNodeID() );
+
+    //build the packet:
+    PyPacket* p = new PyPacket;
+    p->type_string = "macho.SessionChangeNotification";
+    p->type = SESSIONCHANGENOTIFICATION;
+
+    p->source.type = PyAddress::Node;
+    p->source.typeID = services().GetNodeID();
+    p->source.callID = 0;
+
+    p->dest.type = PyAddress::Client;
+    p->dest.typeID = GetAccountID();
+    p->dest.callID = 0;
+
+    p->userid = GetAccountID();
+
+    p->payload = scn.Encode();
+
+    p->named_payload = NULL;
+    //p->named_payload = new PyDict();
+    //p->named_payload->SetItemString( "channel", new PyString( "sessionchange" ) );
+
+
+    //_log(CLIENT__IN_ALL, "Sending Session packet:");
+    //PyLogDumpVisitor dumper(CLIENT__OUT_ALL, CLIENT__OUT_ALL);
+    //p->Dump(CLIENT__OUT_ALL, dumper);
+
+
+
+    FastQueuePacket( &p );
+}
+
+void Client::_SendPingRequest()
+{
+    PyPacket *ping_req = new PyPacket();
+
+    ping_req->type = PING_REQ;
+    ping_req->type_string = "macho.PingReq";
+
+    ping_req->source.type = PyAddress::Node;
+    ping_req->source.typeID = services().GetNodeID();
+    ping_req->source.service = "ping";
+    ping_req->source.callID = 0;
+
+    ping_req->dest.type = PyAddress::Client;
+    ping_req->dest.typeID = GetAccountID();
+    ping_req->dest.callID = 0;
+
+    ping_req->userid = GetAccountID();
+
+    ping_req->payload = new_tuple( new PyList() ); //times
+    ping_req->named_payload = new PyDict();
+
+    FastQueuePacket(&ping_req);
+}
+
+void Client::_SendPingResponse( const PyAddress& source, uint64 callID )
+{
+    PyPacket* ret = new PyPacket;
+    ret->type = PING_RSP;
+    ret->type_string = "macho.PingRsp";
+
+    ret->source = source;
+
+    ret->dest.type = PyAddress::Client;
+    ret->dest.typeID = GetAccountID();
+    ret->dest.callID = callID;
+
+    ret->userid = GetAccountID();
+
+    /*  Here the hacking begins, the ping packet handles the timestamps of various packet handling steps.
+        To really simulate/emulate that we need the various packet handlers which in fact we don't have ( :P ).
+        So the next piece of code "fake's" it, with a slight delay on the received packet time.
+    */
+    PyList* pingList = new PyList;
+    PyTuple* pingTuple;
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));        // this should be the time the packet was received (we cheat here a bit)
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));             // this is the time the packet is (handled/writen) by the (proxy/server) so we're cheating a bit again.
+    pingTuple->SetItem(2, new PyString("proxy::handle_message"));
+    pingList->AddItem( pingTuple );
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
+    pingTuple->SetItem(2, new PyString("proxy::writing"));
+    pingList->AddItem( pingTuple );
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
+    pingTuple->SetItem(2, new PyString("server::handle_message"));
+    pingList->AddItem( pingTuple );
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
+    pingTuple->SetItem(2, new PyString("server::turnaround"));
+    pingList->AddItem( pingTuple );
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
+    pingTuple->SetItem(2, new PyString("proxy::handle_message"));
+    pingList->AddItem( pingTuple );
+
+    pingTuple = new PyTuple(3);
+    pingTuple->SetItem(0, new PyLong(Win32TimeNow() - 20));
+    pingTuple->SetItem(1, new PyLong(Win32TimeNow()));
+    pingTuple->SetItem(2, new PyString("proxy::writing"));
+    pingList->AddItem( pingTuple );
+
+    // Set payload
+    ret->payload = new PyTuple( 1 );
+    ret->payload->SetItem( 0, pingList );
+
+    // Don't clone so it eats the ret object upon sending.
+    FastQueuePacket( &ret );
+}
 
 void Client::_LoadSystems()
 {
-	// instantiate the service manager
-	PyServiceMgr services( 888444);//, entityList, itemFactory );
-
+	sEntityList.Add( &player );
 	// setup the command dispatcher
-	CommandDispatcher command_dispatcher( services );
+	CommandDispatcher command_dispatcher( m_services );
 	RegisterAllCommands( command_dispatcher );
 
 	// Please keep the services list clean so it's easier to find something
-	services.RegisterService(new AccountService(&services));
-	services.RegisterService(new AgentMgrService(&services));
-	services.RegisterService(new AggressionMgrService(&services));
-	services.RegisterService(new AlertService(&services));
-	services.RegisterService(new AuthService(&services));
-	services.RegisterService(new BillMgrService(&services));
-	services.RegisterService(new BeyonceService(&services));
-	services.RegisterService(new BookmarkService(&services));
-	services.RegisterService(new BrowserLockdownService(&services));
-	services.RegisterService(new BulkMgrService(&services));
-	services.RegisterService(new CertificateMgrService(&services));
-	services.RegisterService(new CharFittingMgrService(&services));
-	services.RegisterService(new CharUnboundMgrService(&services));
-	services.RegisterService(new CharMgrService(&services));
-	services.RegisterService(new ClientStatLogger(&services));
-	services.RegisterService(new ClientStatsMgr(&services));
-	services.RegisterService(new ConfigService(&services));
-	services.RegisterService(new CorpBookmarkMgrService(&services));
-	services.RegisterService(new CorpMgrService(&services));
-	services.RegisterService(new CorporationService(&services));
-	services.RegisterService(new CorpRegistryService(&services));
-	services.RegisterService(new CorpStationMgrService(&services));
-	services.RegisterService(new ContractMgrService(&services));
-	services.RegisterService(new ContractProxyService(&services));
-	services.RegisterService(new DevToolsProviderService(&services));
-	services.RegisterService(new DogmaIMService(&services));
-	services.RegisterService(new DogmaService(&services));
-	services.RegisterService(new DungeonExplorationMgrService(&services));
-	services.RegisterService(new DungeonService(&services));
-	services.RegisterService(new FactionWarMgrService(&services));
-	services.RegisterService(new FactoryService(&services));
-	services.RegisterService(new FleetProxyService(&services));
-	services.RegisterService(new HoloscreenMgrService(&services));
-	services.RegisterService(new InfoGatheringMgr(&services));
-	services.RegisterService(new InsuranceService(&services));
-	services.RegisterService(new InvBrokerService(&services));
-	services.RegisterService(new JumpCloneService(&services));
-	services.RegisterService(new KeeperService(&services));
-	services.RegisterService(new LanguageService(&services));
-	services.RegisterService(new LocalizationServerService(&services));
-	services.RegisterService(new LookupService(&services));
-	services.RegisterService(new LPService(&services));
-	services.RegisterService(services.lsc_service = new LSCService(&services, &command_dispatcher));
-	services.RegisterService(new MailMgrService(&services));
-	services.RegisterService(new MailingListMgrService(&services));
-	services.RegisterService(new MapService(&services));
-	services.RegisterService(new MarketProxyService(&services));
-	services.RegisterService(new MissionMgrService(&services));
-	services.RegisterService(new NetService(&services));
-	services.RegisterService(new NotificationMgrService(&services));
-	services.RegisterService(services.cache_service = new ObjCacheService(&services, sConfig.files.cacheDir.c_str()));
-	services.RegisterService(new OnlineStatusService(&services));
-	services.RegisterService(new PaperDollService(&services));
-	services.RegisterService(new PetitionerService(&services));
-	services.RegisterService(new PhotoUploadService(&services));
-	services.RegisterService(new PlanetMgrService(&services));
-	services.RegisterService(new PosMgrService(&services));
-	services.RegisterService(new RamProxyService(&services));
-	services.RegisterService(new RepairService(&services));
-	services.RegisterService(new ReprocessingService(&services));
-	services.RegisterService(new SearchMgrService(&services));
-	services.RegisterService(new ShipService(&services));
-	services.RegisterService(new SkillMgrService(&services));
-	services.RegisterService(new SlashService(&services, &command_dispatcher));
-	services.RegisterService(new SovereigntyMgrService(&services));
-	services.RegisterService(new Standing2Service(&services));
-	services.RegisterService(new StationService(&services));
-	services.RegisterService(new StationSvcService(&services));
-	services.RegisterService(new TutorialService(&services));
-	services.RegisterService(new UserService(&services));
-	services.RegisterService(new VoiceMgrService(&services));
-	services.RegisterService(new WarRegistryService(&services));
+	m_services.RegisterService(new AccountService(&m_services, &m_db));
+	m_services.RegisterService(new AgentMgrService(&m_services));
+	m_services.RegisterService(new AggressionMgrService(&m_services));
+	m_services.RegisterService(new AlertService(&m_services));
+	m_services.RegisterService(new AuthService(&m_services));
+	m_services.RegisterService(new BillMgrService(&m_services));
+	m_services.RegisterService(new BeyonceService(&m_services));
+	m_services.RegisterService(new BookmarkService(&m_services));
+	m_services.RegisterService(new BrowserLockdownService(&m_services));
+	m_services.RegisterService(new BulkMgrService(&m_services));
+	m_services.RegisterService(new CertificateMgrService(&m_services));
+	m_services.RegisterService(new CharFittingMgrService(&m_services));
+	m_services.RegisterService(new CharUnboundMgrService(&m_services));
+	m_services.RegisterService(new CharMgrService(&m_services));
+	m_services.RegisterService(new ClientStatLogger(&m_services));
+	m_services.RegisterService(new ClientStatsMgr(&m_services));
+	m_services.RegisterService(new ConfigService(&m_services));
+	m_services.RegisterService(new CorpBookmarkMgrService(&m_services));
+	m_services.RegisterService(new CorpMgrService(&m_services));
+	m_services.RegisterService(new CorporationService(&m_services));
+	m_services.RegisterService(new CorpRegistryService(&m_services));
+	m_services.RegisterService(new CorpStationMgrService(&m_services));
+	m_services.RegisterService(new ContractMgrService(&m_services));
+	m_services.RegisterService(new ContractProxyService(&m_services));
+	m_services.RegisterService(new DevToolsProviderService(&m_services));
+	m_services.RegisterService(new DogmaIMService(&m_services));
+	m_services.RegisterService(new DogmaService(&m_services));
+	m_services.RegisterService(new DungeonExplorationMgrService(&m_services));
+	m_services.RegisterService(new DungeonService(&m_services));
+	m_services.RegisterService(new FactionWarMgrService(&m_services));
+	m_services.RegisterService(new FactoryService(&m_services));
+	m_services.RegisterService(new FleetProxyService(&m_services));
+	m_services.RegisterService(new HoloscreenMgrService(&m_services));
+	m_services.RegisterService(new InfoGatheringMgr(&m_services));
+	m_services.RegisterService(new InsuranceService(&m_services));
+	m_services.RegisterService(new InvBrokerService(&m_services));
+	m_services.RegisterService(new JumpCloneService(&m_services));
+	m_services.RegisterService(new KeeperService(&m_services));
+	m_services.RegisterService(new LanguageService(&m_services));
+	m_services.RegisterService(new LocalizationServerService(&m_services));
+	m_services.RegisterService(new LookupService(&m_services));
+	m_services.RegisterService(new LPService(&m_services));
+	m_services.RegisterService(m_services.lsc_service = new LSCService(&m_services, &command_dispatcher));
+	m_services.RegisterService(new MailMgrService(&m_services));
+	m_services.RegisterService(new MailingListMgrService(&m_services));
+	m_services.RegisterService(new MapService(&m_services));
+	m_services.RegisterService(new MarketProxyService(&m_services));
+	m_services.RegisterService(new MissionMgrService(&m_services));
+	m_services.RegisterService(new NetService(&m_services));
+	m_services.RegisterService(new NotificationMgrService(&m_services));
+	m_services.RegisterService(m_services.cache_service = new ObjCacheService(&m_services, sConfig.files.cacheDir.c_str()));
+	m_services.RegisterService(new OnlineStatusService(&m_services));
+	m_services.RegisterService(new PaperDollService(&m_services));
+	m_services.RegisterService(new PetitionerService(&m_services));
+	m_services.RegisterService(new PhotoUploadService(&m_services));
+	m_services.RegisterService(new PlanetMgrService(&m_services));
+	m_services.RegisterService(new PosMgrService(&m_services));
+	m_services.RegisterService(new RamProxyService(&m_services));
+	m_services.RegisterService(new RepairService(&m_services));
+	m_services.RegisterService(new ReprocessingService(&m_services));
+	m_services.RegisterService(new SearchMgrService(&m_services));
+	m_services.RegisterService(new ShipService(&m_services));
+	m_services.RegisterService(new SkillMgrService(&m_services));
+	m_services.RegisterService(new SlashService(&m_services, &command_dispatcher));
+	m_services.RegisterService(new SovereigntyMgrService(&m_services));
+	m_services.RegisterService(new Standing2Service(&m_services));
+	m_services.RegisterService(new StationService(&m_services));
+	m_services.RegisterService(new StationSvcService(&m_services));
+	m_services.RegisterService(new TutorialService(&m_services));
+	m_services.RegisterService(new UserService(&m_services));
+	m_services.RegisterService(new VoiceMgrService(&m_services));
+	m_services.RegisterService(new WarRegistryService(&m_services));
 
-	services.cache_service->PrimeCache();
+	m_services.cache_service->PrimeCache();
 }

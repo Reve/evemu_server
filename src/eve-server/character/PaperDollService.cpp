@@ -73,10 +73,10 @@ PyResult PaperDollService::Handle_GetMyPaperDollData(PyCallArgs &call)
 	
 	PyDict* args = new PyDict;
 
-	args->SetItemString( "colors", m_db.GetPaperDollAvatarColors(call.client->GetCharacterID()) );
-	args->SetItemString( "modifiers", m_db.GetPaperDollAvatarModifiers(call.client->GetCharacterID()) );
-	args->SetItemString( "appearance", m_db.GetPaperDollAvatar(call.client->GetCharacterID()) );
-	args->SetItemString( "sculpts", m_db.GetPaperDollAvatarSculpts(call.client->GetCharacterID()) );
+	args->SetItemString( "colors", m_db.GetPaperDollAvatarColors(call.player->GetCharacterID()) );
+	args->SetItemString( "modifiers", m_db.GetPaperDollAvatarModifiers(call.player->GetCharacterID()) );
+	args->SetItemString( "appearance", m_db.GetPaperDollAvatar(call.player->GetCharacterID()) );
+	args->SetItemString( "sculpts", m_db.GetPaperDollAvatarSculpts(call.player->GetCharacterID()) );
 
     return new PyObject("util.KeyVal", args);
 }

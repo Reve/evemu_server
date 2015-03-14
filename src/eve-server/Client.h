@@ -148,7 +148,7 @@ public:
 	DBcore m_db;
 	LiveUpdateDB m_liveUpdate;
 
-	Client(EVETCPConnection **con);
+	Client(EVETCPConnection **con, ItemFactory &item_factory);
 	virtual ~Client(void);
 	bool operator==(const Client& other) const;
 
@@ -163,11 +163,7 @@ public:
 	
 	std::string GetName() const						{ return "Dummy"; } //this is to suprimate the errors but it should be the chars name
 
-	//void _LoadSystems(EntityList &entityList, ItemFactory &itemFactory);
-
-protected:
-	static long nextID;
-	ClientSession mSession;
+	PyServiceMgr services() { return m_services; }
 
 	// Packet stuff
 	void _SendCallReturn( const PyAddress& source, uint64 callID, PyRep** return_value, const char* channel = NULL );
@@ -175,6 +171,12 @@ protected:
 	void _SendSessionChange();
 	void _SendPingRequest();
 	void _SendPingResponse( const PyAddress& source, uint64 callID );
+
+	//void _LoadSystems(EntityList &entityList, ItemFactory &itemFactory);
+
+protected:
+	static long nextID;
+	ClientSession mSession;
 
 	/********************************************************************/
 	/* EVEClientSession interface                                       */
@@ -202,7 +204,10 @@ protected:
 
 private:
 	ClientDB m_clientDB;
-	PyServiceMgr services;
+	PyServiceMgr m_services;
+	ItemFactory iFactory;
+	Player *player;
+	Timer m_pingTimer;
 
 	void _LoadSystems();
 };

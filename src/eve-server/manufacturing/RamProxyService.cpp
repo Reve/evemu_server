@@ -78,10 +78,10 @@ PyResult RamProxyService::Handle_GetJobs2(PyCallArgs &call) {
         return NULL;
     }
 
-    if((uint32)args.ownerID == call.client->GetCorporationID()) {
-        if((call.client->GetCorpRole() & corpRoleFactoryManager) != corpRoleFactoryManager) {
+    if((uint32)args.ownerID == call.player->GetCorporationID()) {
+        if((call.player->GetCorpRole() & corpRoleFactoryManager) != corpRoleFactoryManager) {
             // I'm afraid we don't have proper error in our DB ...
-            call.client->SendInfoModalMsg("You cannot view your corporation's jobs because you do not possess the role \"Factory Manager\".");
+            call.player->SendInfoModalMsg("You cannot view your corporation's jobs because you do not possess the role \"Factory Manager\".");
             return NULL;
         }
     }
@@ -99,14 +99,14 @@ PyResult RamProxyService::Handle_AssemblyLinesSelect(PyCallArgs &call) {
 
     // unfinished
     if(args.filter == "region")
-        return(m_db.AssemblyLinesSelectPublic(call.client->GetRegionID()));
+        return(m_db.AssemblyLinesSelectPublic(call.player->GetRegionID()));
     else if(args.filter == "char")
-        return(m_db.AssemblyLinesSelectPersonal(call.client->GetCharacterID()));
+        return(m_db.AssemblyLinesSelectPersonal(call.player->GetCharacterID()));
     else if(args.filter == "corp")
-        return(m_db.AssemblyLinesSelectCorporation(call.client->GetCorporationID()));
+        return(m_db.AssemblyLinesSelectCorporation(call.player->GetCorporationID()));
     else if(args.filter == "alliance") {
 //      return(m_db.AssemblyLinesSelectAlliance(...));
-        call.client->SendInfoModalMsg("Alliances are not implemented yet.");
+        call.player->SendInfoModalMsg("Alliances are not implemented yet.");
         return NULL;
     } else {
         _log(SERVICE__ERROR, "Unknown filter '%s'.", args.filter.c_str());
@@ -149,11 +149,11 @@ PyResult RamProxyService::Handle_InstallJob(PyCallArgs &call) {
     }
 
     // verify call
-    _VerifyInstallJob_Call( args, (InventoryItemRef)installedItem, pathBomLocation, call.client );
+    _VerifyInstallJob_Call( args, (InventoryItemRef)installedItem, pathBomLocation, call.player );
 
     // this calculates some useful multipliers ... Rsp_InstallJob is used as container ...
     Rsp_InstallJob rsp;
-    if(!_Calculate(args, (InventoryItemRef)installedItem, call.client, rsp))
+    if(!_Calculate(args, (InventoryItemRef)installedItem, call.player, rsp))
         return NULL;
 
     // I understand sent maxJobStartTime as a limit, so this checks whether it's in limit
@@ -169,14 +169,14 @@ PyResult RamProxyService::Handle_InstallJob(PyCallArgs &call) {
     if(call.byname["quoteOnly"]->AsInt()->value())
     {
         _EncodeBillOfMaterials(reqItems, rsp.materialMultiplier, rsp.charMaterialMultiplier, args.runs, rsp.bom);
-        _EncodeMissingMaterials(reqItems, pathBomLocation, call.client, rsp.materialMultiplier, rsp.charMaterialMultiplier, args.runs, rsp.missingMaterials);
+        _EncodeMissingMaterials(reqItems, pathBomLocation, call.player, rsp.materialMultiplier, rsp.charMaterialMultiplier, args.runs, rsp.missingMaterials);
 
         return rsp.Encode();
     }
     else
     {
         // verify install
-        _VerifyInstallJob_Install(rsp, pathBomLocation, reqItems, args.runs, call.client);
+        _VerifyInstallJob_Install(rsp, pathBomLocation, reqItems, args.runs, call.player);
 
         // now we are sure everything from the client side is right, we can start it ...
 
@@ -187,8 +187,8 @@ PyResult RamProxyService::Handle_InstallJob(PyCallArgs &call) {
 
         // register our job
         if( !m_db.InstallJob(
-            args.isCorpJob ? call.client->GetCorporationID() : call.client->GetCharacterID(),
-            call.client->GetCharacterID(),
+            args.isCorpJob ? call.player->GetCorporationID() : call.player->GetCharacterID(),
+            call.player->GetCharacterID(),
             args.installationAssemblyLineID,
             installedItem->itemID(),
             beginProductionTime,
@@ -213,7 +213,7 @@ PyResult RamProxyService::Handle_InstallJob(PyCallArgs &call) {
         }
 
         // pay for assembly lines, move the item away
-        call.client->AddBalance(-rsp.cost);
+        call.player->AddBalance(-rsp.cost);
         installedItem->Move( installedItem->locationID(), flagFactoryBlueprint );
 
         // query all items contained in "Bill of Materials" location
@@ -237,7 +237,7 @@ PyResult RamProxyService::Handle_InstallJob(PyCallArgs &call) {
             endi = items.end();
             // consume required materials
             for(; curi != endi; curi++) {
-                if((*curi)->typeID() == cur->typeID && (*curi)->ownerID() == call.client->GetCharacterID()) {
+                if((*curi)->typeID() == cur->typeID && (*curi)->ownerID() == call.player->GetCharacterID()) {
                     if(qtyNeeded >= (*curi)->quantity()) {
                         qtyNeeded -= (*curi)->quantity();
                         (*curi)->Delete();
@@ -261,7 +261,7 @@ PyResult RamProxyService::Handle_CompleteJob(PyCallArgs &call) {
         return NULL;
     }
 
-    _VerifyCompleteJob(args, call.client);
+    _VerifyCompleteJob(args, call.player);
 
     // hundreds of variables to allocate ... maybe we can make struct for GetJobProperties and InstallJob?
     uint32 installedItemID, ownerID, runs, licensedProductionRuns;

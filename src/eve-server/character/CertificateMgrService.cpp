@@ -54,7 +54,7 @@ CertificateMgrService::~CertificateMgrService()
 
 PyResult CertificateMgrService::Handle_GetMyCertificates(PyCallArgs &call) {
     Character::Certificates crt;
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
     ch->GetCertificates( crt );
 
     util_Rowset rs;
@@ -129,7 +129,7 @@ PyResult CertificateMgrService::Handle_GrantCertificate(PyCallArgs &call) {
         _log(CLIENT__ERROR, "Failed to decode args.");
         return(NULL);
     }
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     return(new PyBool( ch->GrantCertificate( arg.arg ) ) );
 }
@@ -142,7 +142,7 @@ PyResult CertificateMgrService::Handle_BatchCertificateGrant(PyCallArgs &call) {
     }
 
     PyList *res = new PyList;
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     std::vector<int32>::iterator cur, end;
     cur = arg.ints.begin();
@@ -162,7 +162,7 @@ PyResult CertificateMgrService::Handle_BatchCertificateUpdate(PyCallArgs &call) 
         return(NULL);
     }
 
-    CharacterRef ch = call.client->GetChar();
+    CharacterRef ch = call.player->GetChar();
 
     std::map<uint32, uint32>::iterator cur, end;
     cur = args.update.begin();
